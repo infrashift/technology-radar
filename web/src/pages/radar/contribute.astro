@@ -1,0 +1,115 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { contributeItems } from '../../data/contribute';
+---
+
+<Layout title="Contribute">
+  <div class="contribute-page">
+    <h1>Contribute</h1>
+    <p class="contribute-intro">
+      The Technology Radar is a living document that benefits from diverse perspectives and real-world experience. There are many ways to get involved.
+    </p>
+
+    <div class="contribute-sections">
+      {contributeItems.map((section) => (
+        <section class="contribute-section">
+          <h2>{section.title}</h2>
+          <div class="section-content" set:html={section.content} />
+        </section>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .contribute-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .contribute-intro {
+    color: var(--color-text-secondary);
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+  }
+
+  .contribute-section {
+    margin-bottom: 2.5rem;
+  }
+
+  .contribute-section:last-child {
+    margin-bottom: 0;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .section-content {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
+
+  .section-content :global(p) {
+    margin-bottom: 0.75rem;
+  }
+
+  .section-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .section-content :global(ul),
+  .section-content :global(ol) {
+    margin: 0.5rem 0 0.75rem 1.5rem;
+  }
+
+  .section-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .section-content :global(li:last-child) {
+    margin-bottom: 0;
+  }
+
+  .section-content :global(a) {
+    color: var(--color-link);
+  }
+
+  .section-content :global(strong) {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .section-content :global(code) {
+    font-size: 0.9em;
+    background: var(--color-bg-tertiary);
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.25rem;
+  }
+
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+    }
+
+    .contribute-section {
+      margin-bottom: 2rem;
+    }
+  }
+</style>

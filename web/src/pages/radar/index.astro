@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import RadarVisualizer from '../../components/RadarVisualizer.vue';
+import blipData from '../../data/blips-generated.json';
+import type { BlipData } from '../../types/radar';
+---
+
+<Layout title="Radar">
+  <div class="radar-page">
+    <h1>Technology Radar</h1>
+    <p class="subtitle">Published quarterly, the Technology Radar offers a strategic snapshot of the tools, techniques, platforms, and frameworks shaping our engineering practices—highlighting what we are actively evaluating, trialing, or adopting.</p>
+    <RadarVisualizer blips={blipData as BlipData[]} client:load />
+  </div>
+</Layout>
+
+<style>
+  .radar-page {
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.03em;
+  }
+
+  .subtitle {
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+</style>

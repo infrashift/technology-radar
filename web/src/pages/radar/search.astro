@@ -1,0 +1,32 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import BlipSearch from '../../components/BlipSearch.vue';
+import type { SearchableBlip } from '../../types/radar';
+
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+    .replace(/^import\s.*/gm, '')
+    .trim();
+}
+
+const blips = await getCollection('blips');
+
+const searchIndex: SearchableBlip[] = blips.map((blip) => ({
+  id: blip.data.id,
+  title: blip.data.title,
+  quadrant: blip.data.quadrant,
+  ring: blip.data.ring,
+  isNew: blip.data.isNew,
+  history: blip.data.history,
+  relatedBlips: blip.data.relatedBlips,
+  description: stripMarkdown(blip.body || ''),
+}));
+---
+
+<Layout title="Search">
+  <BlipSearch blips={searchIndex} client:load />
+</Layout>

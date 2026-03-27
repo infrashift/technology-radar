@@ -1,0 +1,132 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { faqItems } from '../../data/faq';
+---
+
+<Layout title="FAQ">
+  <div class="faq-page">
+    <h1>Frequently Asked Questions</h1>
+    <p class="faq-intro">
+      Learn how to read and use the Technology Radar.
+    </p>
+
+    <div class="faq-list">
+      {faqItems.map((item) => (
+        <details class="faq-item">
+          <summary class="faq-question">{item.question}</summary>
+          <div class="faq-answer" set:html={item.answer} />
+        </details>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .faq-page {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .faq-intro {
+    color: var(--color-text-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .faq-list {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--color-text-primary);
+    list-style: none;
+  }
+
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question::after {
+    content: '';
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid var(--color-text-secondary);
+    border-bottom: 2px solid var(--color-text-secondary);
+    transform: rotate(45deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  details[open] .faq-question::after {
+    transform: rotate(-135deg);
+  }
+
+  .faq-answer {
+    padding: 0 0 1.25rem 0;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+  }
+
+  .faq-answer :global(p) {
+    margin-bottom: 0.75rem;
+  }
+
+  .faq-answer :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .faq-answer :global(ul) {
+    margin: 0.5rem 0 0.75rem 1.5rem;
+  }
+
+  .faq-answer :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .faq-answer :global(li:last-child) {
+    margin-bottom: 0;
+  }
+
+  .faq-answer :global(a) {
+    color: var(--color-link);
+  }
+
+  .faq-answer :global(strong) {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  @media (max-width: 600px) {
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .faq-question {
+      font-size: 1rem;
+      padding: 1rem 0;
+    }
+
+    .faq-answer {
+      padding: 0 0 1rem 0;
+    }
+  }
+</style>

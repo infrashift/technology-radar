@@ -1,0 +1,28 @@
+# Go
+bin/
+vendor/
+
+# Web build artifacts
+web/dist/
+web/.astro/
+web/node_modules/
+web/src/content/blips/
+web/src/data/blips-generated.json
+web/test-results/
+
+# CUE
+cue.mod/pkg/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Internal docs
+PRD*.md
+SPEC*.md

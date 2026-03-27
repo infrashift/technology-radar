@@ -1,0 +1,6 @@
+content_dir: content/blips
+schema_path: schema/radar.cue
+web_dir: web
+output_json: web/src/data/blips-generated.json
+output_content: web/src/content/blips
+version: "2025.11"

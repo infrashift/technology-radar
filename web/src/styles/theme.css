@@ -1,0 +1,79 @@
+:root {
+  /* Backgrounds */
+  --color-bg-body: #fafafa;
+  --color-bg-surface: #fff;
+  --color-bg-subtle: #f0f0f0;
+  --color-bg-hover: #f8f8f8;
+  --color-bg-header: #1a1a2e;
+
+  /* Text */
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #666;
+  --color-text-tertiary: #999;
+  --color-text-muted: #bbb;
+  --color-text-on-dark: #fff;
+
+  /* Borders */
+  --color-border: #e0e0e0;
+  --color-border-subtle: #e8e8e8;
+  --color-border-light: #f0f0f0;
+
+  /* Interactive */
+  --color-link: #0969da;
+  --color-button-bg: #1a1a2e;
+  --color-button-bg-hover: #2d2d4e;
+
+  /* SVG radar */
+  --color-radar-ring-fill: #fff;
+  --color-radar-ring-stroke: #e0e0e0;
+  --color-radar-label-bg: #f0f0f0;
+  --color-radar-label-bg-hover: #e8e8e8;
+  --color-radar-tooltip-bg: #1a1a2e;
+  --color-radar-tooltip-text: #fff;
+  --color-radar-highlight-stroke: #1a1a2e;
+  --color-radar-legend: #666;
+
+  /* Misc */
+  --color-highlight-bg: #f0f0f0;
+  --color-new-badge: #f0883e;
+}
+
+html.dark {
+  /* Backgrounds */
+  --color-bg-body: #121220;
+  --color-bg-surface: #1c1c30;
+  --color-bg-subtle: #252540;
+  --color-bg-hover: #2a2a45;
+  --color-bg-header: #0d0d1a;
+
+  /* Text */
+  --color-text-primary: #e0e0f0;
+  --color-text-secondary: #a0a0b0;
+  --color-text-tertiary: #777790;
+  --color-text-muted: #555568;
+  --color-text-on-dark: #fff;
+
+  /* Borders */
+  --color-border: #333350;
+  --color-border-subtle: #2a2a45;
+  --color-border-light: #252540;
+
+  /* Interactive */
+  --color-link: #58a6ff;
+  --color-button-bg: #252540;
+  --color-button-bg-hover: #333350;
+
+  /* SVG radar */
+  --color-radar-ring-fill: #1c1c30;
+  --color-radar-ring-stroke: #333350;
+  --color-radar-label-bg: #252540;
+  --color-radar-label-bg-hover: #333350;
+  --color-radar-tooltip-bg: #252540;
+  --color-radar-tooltip-text: #e0e0f0;
+  --color-radar-highlight-stroke: #e0e0f0;
+  --color-radar-legend: #a0a0b0;
+
+  /* Misc */
+  --color-highlight-bg: #252540;
+  --color-new-badge: #f0883e;
+}
