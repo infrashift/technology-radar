@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { withBase } from '../utils/url';
+---
+
+<Layout title="Not found">
+  <div class="not-found">
+    <h1>Page not found</h1>
+    <p>That page isn't on the radar. It may have been renamed or removed.</p>
+    <p>
+      <a href={withBase('/radar')}>Back to the radar</a> or <a href={withBase('/radar/search')}>search for a blip</a>.
+    </p>
+  </div>
+</Layout>
+
+<style>
+  .not-found {
+    max-width: 640px;
+    margin: 4rem auto;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: var(--color-text-secondary);
+    margin-bottom: 0.75rem;
+  }
+
+  a {
+    color: var(--color-link);
+  }
+</style>

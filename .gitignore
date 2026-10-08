@@ -8,6 +8,7 @@ web/.astro/
 web/node_modules/
 web/src/content/blips/
 web/src/data/blips-generated.json
+web/src/data/radar-config.json
 web/test-results/
 
 # CUE

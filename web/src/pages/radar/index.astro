@@ -1,37 +1,80 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import RadarVisualizer from '../../components/RadarVisualizer.vue';
-import blipData from '../../data/blips-generated.json';
-import type { BlipData } from '../../types/radar';
+import { getRadarData } from '../../lib/blips';
+import { RADAR_VERSION } from '../../config/radar';
+
+const { blips } = await getRadarData();
 ---
 
-<Layout title="Radar">
+<Layout title="Radar" fit>
   <div class="radar-page">
-    <h1>Technology Radar</h1>
-    <p class="subtitle">Published quarterly, the Technology Radar offers a strategic snapshot of the tools, techniques, platforms, and frameworks shaping our engineering practices—highlighting what we are actively evaluating, trialing, or adopting.</p>
-    <RadarVisualizer blips={blipData as BlipData[]} client:load />
+    <div class="radar-intro">
+      <div class="title-row">
+        <h1>Technology Radar</h1>
+        <span class="version">Volume {RADAR_VERSION}</span>
+      </div>
+      <p class="subtitle">Published quarterly, the Technology Radar offers a strategic snapshot of the tools, techniques, platforms, and frameworks shaping our engineering practices—highlighting what we are actively evaluating, trialing, or adopting.</p>
+    </div>
+    <RadarVisualizer blips={blips} client:load />
   </div>
 </Layout>
 
 <style>
   .radar-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .radar-intro {
     text-align: center;
   }
 
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+  }
+
   h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
     letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .version {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--color-text-tertiary);
   }
 
   .subtitle {
     color: var(--color-text-secondary);
-    margin-bottom: 2rem;
-    font-size: 1.1rem;
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
+    font-size: 1.05rem;
+    max-width: 860px;
+    margin: 0.5rem auto 0;
+    line-height: 1.5;
+  }
+
+  /* Matches the fit breakpoint in Layout.astro: a compact intro leaves the radar the rest. */
+  @media (min-width: 1025px) and (min-height: 601px) {
+    .radar-page {
+      flex: 1;
+      min-height: 0;
+      gap: 0.75rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
   }
 </style>

@@ -1,3 +1,5 @@
 ---
-return Astro.redirect('/radar');
+import { withBase } from '../utils/url';
+
+return Astro.redirect(withBase('/radar'));
 ---

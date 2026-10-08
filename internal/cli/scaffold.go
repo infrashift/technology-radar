@@ -1,88 +1,103 @@
 package cli
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"go.yaml.in/yaml/v3"
+
+	"github.com/infrashift/technology-radar/internal/build"
 )
 
-var scaffoldCmd = &cobra.Command{
-	Use:   "scaffold <blip-name>",
-	Short: "Scaffold a new MDX blip file",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runScaffold,
+func newScaffoldCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "scaffold <blip-name>",
+		Short: "Scaffold a new MDX blip file",
+		Args:  cobra.ExactArgs(1),
+		RunE:  runScaffold,
+	}
+	cmd.Flags().String("quadrant", "", "quadrant slug (default: first configured quadrant)")
+	cmd.Flags().String("ring", "", "ring slug (default: third configured ring)")
+	cmd.Flags().String("ci-identifier", "", "optional UUIDv7 CI identifier")
+	return cmd
 }
 
-func init() {
-	scaffoldCmd.Flags().String("quadrant", "techniques", "quadrant (techniques, platforms, tools, languages-and-frameworks)")
-	scaffoldCmd.Flags().String("ring", "assess", "ring (adopt, trial, assess, hold)")
-	scaffoldCmd.Flags().String("ci-identifier", "", "optional UUIDv7 CI identifier")
-	rootCmd.AddCommand(scaffoldCmd)
+var nonSlugChars = regexp.MustCompile(`[^a-z0-9]+`)
+
+// slugify turns a display name into a blip id, e.g. "Node.js Edge" -> "node-js-edge".
+func slugify(name string) string {
+	return strings.Trim(nonSlugChars.ReplaceAllString(strings.ToLower(name), "-"), "-")
 }
-
-const blipTemplate = `---
-id: "{{.ID}}"
-title: "{{.Title}}"
-quadrant: "{{.Quadrant}}"
-ring: "{{.Ring}}"
-isNew: true
-{{- if .CIIdentifier}}
-ciIdentifier: "{{.CIIdentifier}}"
-{{- end}}
-history:
-  - date: "{{.Date}}"
-    ring: "{{.Ring}}"
----
-
-TODO: Add description for {{.Title}}.
-`
 
 func runScaffold(cmd *cobra.Command, args []string) error {
+	cfg, err := loadConfig(cmd)
+	if err != nil {
+		return err
+	}
+
 	name := args[0]
-	contentDir := viper.GetString("content_dir")
 	quadrant, _ := cmd.Flags().GetString("quadrant")
 	ring, _ := cmd.Flags().GetString("ring")
 	ciIdentifier, _ := cmd.Flags().GetString("ci-identifier")
 
-	id := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
-	filename := filepath.Join(contentDir, id+".mdx")
-
-	if _, err := os.Stat(filename); err == nil {
-		return fmt.Errorf("file already exists: %s", filename)
+	if quadrant == "" {
+		quadrant = cfg.Quadrants[0].Slug
+	}
+	if ring == "" {
+		ring = cfg.Rings[2].Slug // third ring ("assess" by default)
+	}
+	if !slices.Contains(cfg.QuadrantSlugs(), quadrant) {
+		return fmt.Errorf("invalid quadrant %q; allowed: %s", quadrant, strings.Join(cfg.QuadrantSlugs(), ", "))
+	}
+	if !slices.Contains(cfg.RingSlugs(), ring) {
+		return fmt.Errorf("invalid ring %q; allowed: %s", ring, strings.Join(cfg.RingSlugs(), ", "))
 	}
 
-	tmpl, err := template.New("blip").Parse(blipTemplate)
-	if err != nil {
-		return fmt.Errorf("parsing template: %w", err)
+	id := slugify(name)
+	if id == "" {
+		return fmt.Errorf("cannot derive an id from %q; use letters or digits", name)
 	}
 
-	f, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("creating file: %w", err)
-	}
-	defer f.Close()
-
-	data := struct {
-		ID, Title, Quadrant, Ring, Date, CIIdentifier string
-	}{
+	// Marshalling (rather than templating) keeps titles with quotes or colons valid YAML.
+	var fm bytes.Buffer
+	enc := yaml.NewEncoder(&fm)
+	enc.SetIndent(2)
+	err = enc.Encode(build.Blip{
 		ID:           id,
 		Title:        name,
 		Quadrant:     quadrant,
 		Ring:         ring,
-		Date:         time.Now().Format("2006-01"),
+		IsNew:        true,
 		CIIdentifier: ciIdentifier,
+		History:      []build.History{{Date: time.Now().Format("2006-01"), Ring: ring}},
+	})
+	if err != nil {
+		return fmt.Errorf("encoding frontmatter: %w", err)
+	}
+	content := fmt.Sprintf("---\n%s---\n\nTODO: Add description for %s.\n", fm.String(), name)
+
+	filename := filepath.Join(cfg.ContentDir, id+".mdx")
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return fmt.Errorf("file already exists: %s", filename)
+	}
+	if err != nil {
+		return fmt.Errorf("creating file: %w", err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString(content); err != nil {
+		return fmt.Errorf("writing %s: %w", filename, err)
 	}
 
-	if err := tmpl.Execute(f, data); err != nil {
-		return fmt.Errorf("writing template: %w", err)
-	}
-
-	fmt.Printf("Created %s\n", filename)
+	fmt.Fprintf(cmd.OutOrStdout(), "Created %s\n", filename)
 	return nil
 }

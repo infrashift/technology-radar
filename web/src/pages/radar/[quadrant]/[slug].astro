@@ -1,80 +1,56 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
 import Layout from '../../../layouts/Layout.astro';
 import QuadrantRadar from '../../../components/QuadrantRadar.vue';
-import blipData from '../../../data/blips-generated.json';
-import { assignBlipNumbers } from '../../../utils/blipNumbering';
-import type { BlipData, Ring } from '../../../types/radar';
+import { getRadarData, type BlipEntry } from '../../../lib/blips';
+import { QUADRANT_CONFIGS, RING_COLORS, RING_LABELS } from '../../../config/radar';
+import { groupByRing } from '../../../utils/radarLayout';
+import { blipHref, withBase } from '../../../utils/url';
 
 export async function getStaticPaths() {
-  const blips = await getCollection('blips');
-  return blips.map((blip) => ({
-    params: { quadrant: blip.data.quadrant, slug: blip.data.id },
-    props: { blip },
+  const { entries } = await getRadarData();
+  return entries.map((entry) => ({
+    params: { quadrant: entry.data.quadrant, slug: entry.data.id },
+    props: { entry },
   }));
 }
 
-const { blip } = Astro.props;
-const { Content } = await render(blip);
+interface Props {
+  entry: BlipEntry;
+}
 
-const ringColors: Record<string, string> = {
-  adopt: '#2da44e',
-  trial: '#0969da',
-  assess: '#bf8700',
-  hold: '#cf222e',
-};
+const { entry } = Astro.props;
+const blip = entry.data;
+const { Content } = await render(entry);
+const { blips, byId } = await getRadarData();
 
-const quadrantLabels: Record<string, string> = {
-  techniques: 'Techniques',
-  platforms: 'Platforms',
-  tools: 'Tools',
-  'languages-and-frameworks': 'Languages & Frameworks',
-};
+const quadrant = QUADRANT_CONFIGS[blip.quadrant];
+const quadrantBlips = blips.filter((b) => b.quadrant === blip.quadrant);
+const blipsByRing = groupByRing(blips, blip.quadrant);
 
-const ringOrder: Ring[] = ['adopt', 'trial', 'assess', 'hold'];
-
-// Compute numbered blips for the sidebar list
-const numberedBlips = assignBlipNumbers(blipData as any);
-const quadrantBlipsList = numberedBlips
-  .filter((b) => b.quadrant === blip.data.quadrant)
-  .sort((a, b) => {
-    const ringDiff = ringOrder.indexOf(a.ring as Ring) - ringOrder.indexOf(b.ring as Ring);
-    if (ringDiff !== 0) return ringDiff;
-    return a.title.localeCompare(b.title);
-  });
-
-// Group by ring for display
-const blipsByRing = ringOrder.map((ring) => ({
-  ring,
-  blips: quadrantBlipsList.filter((b) => b.ring === ring),
-})).filter((g) => g.blips.length > 0);
-
-// Resolve related blips
-const allBlips = await getCollection('blips');
-const relatedBlipData = (blip.data.relatedBlips || [])
-  .map((id: string) => allBlips.find((b) => b.data.id === id))
-  .filter(Boolean);
+// The schema check in `radar build` guarantees related ids exist.
+const relatedBlips = (blip.relatedBlips ?? []).flatMap((id) => byId.get(id) ?? []);
 ---
 
-<Layout title={blip.data.title}>
+<Layout title={blip.title}>
   <div class="blip-page-layout">
     <article class="blip-detail">
-      <nav class="breadcrumb">
-        <a href="/radar">Radar</a>
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href={withBase('/radar')}>Radar</a>
         <span class="sep">/</span>
-        <a href={`/radar#${blip.data.quadrant}`}>{quadrantLabels[blip.data.quadrant]}</a>
+        <a href={withBase(`/radar#${blip.quadrant}`)}>{quadrant.label}</a>
         <span class="sep">/</span>
-        <span>{blip.data.title}</span>
+        <span>{blip.title}</span>
       </nav>
 
       <header>
-        <h1>{blip.data.title}</h1>
+        <h1>{blip.title}</h1>
         <div class="meta">
-          <span class="ring-badge" style={`background: ${ringColors[blip.data.ring]}`}>
-            {blip.data.ring}
+          <span class="ring-badge" style={`background: ${RING_COLORS[blip.ring]}`}>
+            {RING_LABELS[blip.ring]}
           </span>
-          <span class="quadrant-label">{quadrantLabels[blip.data.quadrant]}</span>
-          {blip.data.isNew && <span class="new-badge">NEW</span>}
+          <span class="quadrant-label">{quadrant.label}</span>
+          {blip.isNew && <span class="new-badge">NEW</span>}
         </div>
       </header>
 
@@ -82,15 +58,15 @@ const relatedBlipData = (blip.data.relatedBlips || [])
         <Content />
       </div>
 
-      {blip.data.history && blip.data.history.length > 0 && (
+      {blip.history && blip.history.length > 0 && (
         <section class="history">
           <h2>History</h2>
           <ul>
-            {blip.data.history.map((h: { date: string; ring: string }) => (
+            {blip.history.map((h) => (
               <li>
                 <span class="date">{h.date}</span>
-                <span class="ring-badge small" style={`background: ${ringColors[h.ring]}`}>
-                  {h.ring}
+                <span class="ring-badge small" style={`background: ${RING_COLORS[h.ring]}`}>
+                  {RING_LABELS[h.ring]}
                 </span>
               </li>
             ))}
@@ -98,22 +74,22 @@ const relatedBlipData = (blip.data.relatedBlips || [])
         </section>
       )}
 
-      {relatedBlipData.length > 0 && (
+      {relatedBlips.length > 0 && (
         <section class="related-blips">
           <h2>Related blips</h2>
           <ul>
-            {relatedBlipData.map((related: any) => (
+            {relatedBlips.map((related) => (
               <li>
-                <a href={`/radar/${related.data.quadrant}/${related.data.id}`}>
-                  {related.data.title}
+                <a href={blipHref(related)}>
+                  {related.title}
                 </a>
                 <span class="related-meta">
-                  <span class="ring-badge small" style={`background: ${ringColors[related.data.ring]}`}>
-                    {related.data.ring}
+                  <span class="ring-badge small" style={`background: ${RING_COLORS[related.ring]}`}>
+                    {RING_LABELS[related.ring]}
                   </span>
-                  <span class="related-quadrant">{quadrantLabels[related.data.quadrant]}</span>
-                  {related.data.history?.[0]?.date && (
-                    <span class="related-date">{related.data.history[0].date}</span>
+                  <span class="related-quadrant">{QUADRANT_CONFIGS[related.quadrant].label}</span>
+                  {related.history?.[0]?.date && (
+                    <span class="related-date">{related.history[0].date}</span>
                   )}
                 </span>
               </li>
@@ -124,27 +100,17 @@ const relatedBlipData = (blip.data.relatedBlips || [])
     </article>
 
     <aside class="quadrant-radar-sidebar">
-      <QuadrantRadar
-        blips={blipData as BlipData[]}
-        quadrant={blip.data.quadrant}
-        highlightedBlipId={blip.data.id}
-        client:load
-      />
+      <QuadrantRadar blips={quadrantBlips} quadrant={blip.quadrant} highlightedBlipId={blip.id} />
       <div class="quadrant-blip-list">
-        <h3 style={`color: ${ringColors[blip.data.quadrant] || '#666'}`}>
-          {quadrantLabels[blip.data.quadrant]}
-        </h3>
+        <h3 style={`color: ${quadrant.color}`}>{quadrant.label}</h3>
         {blipsByRing.map((group) => (
           <div class="ring-group">
-            <h4>{group.ring}</h4>
+            <h4>{group.label}</h4>
             <ul>
               {group.blips.map((b) => (
-                <li class={b.id === blip.data.id ? 'current' : ''}>
-                  <a href={`/radar/${b.quadrant}/${b.id}`}>
-                    <span
-                      class="blip-number-badge"
-                      style={`background: ${ringColors[blip.data.quadrant] || '#666'}`}
-                    >
+                <li class={b.id === blip.id ? 'current' : ''}>
+                  <a href={blipHref(b)} aria-current={b.id === blip.id ? 'page' : undefined}>
+                    <span class="blip-number-badge" style={`background: ${quadrant.color}`}>
                       {b.number}
                     </span>
                     {b.title}
@@ -279,7 +245,7 @@ const relatedBlipData = (blip.data.relatedBlips || [])
   }
 
   .date {
-    font-family: monospace;
+    font-family: var(--font-mono);
     color: var(--color-text-secondary);
     font-size: 0.9rem;
   }
@@ -331,7 +297,7 @@ const relatedBlipData = (blip.data.relatedBlips || [])
   }
 
   .related-date {
-    font-family: monospace;
+    font-family: var(--font-mono);
     color: var(--color-text-tertiary);
     font-size: 0.75rem;
   }
@@ -339,7 +305,7 @@ const relatedBlipData = (blip.data.relatedBlips || [])
   /* Quadrant radar sidebar */
   .quadrant-radar-sidebar {
     position: sticky;
-    top: 1rem;
+    top: calc(var(--header-h) + 1rem);
   }
 
   .quadrant-blip-list {

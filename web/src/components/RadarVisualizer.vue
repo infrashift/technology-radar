@@ -1,318 +1,126 @@
 <script setup lang="ts">
-import { ref, computed, toRef } from 'vue';
-import type { BlipData, Quadrant, Ring } from '../types/radar';
+import { ref, computed, onMounted } from 'vue';
+import type { PositionedBlip, Quadrant } from '../types/radar';
 import {
   QUADRANT_CONFIGS,
-  RING_CONFIGS,
-  RING_ORDER,
-  RADAR_SIZE,
+  QUADRANT_ORDER,
   RADAR_RADIUS,
-} from '../types/radar';
-import { generateRingArc, quarterArcPath } from '../utils/radarMath';
-import { useRadarLayout } from '../composables/useRadarLayout';
+  FULL_BOUNDS,
+  quadrantBounds,
+  toViewBox,
+} from '../config/radar';
+import { groupByRing } from '../utils/radarLayout';
+import { blipHref } from '../utils/url';
 import { useViewBoxTween } from '../composables/useViewBoxTween';
-import { useHoverSync } from '../composables/useHoverSync';
+import RadarBackdrop from './radar/RadarBackdrop.vue';
+import RadarBlip from './radar/RadarBlip.vue';
+import RadarLabel from './radar/RadarLabel.vue';
 
 const props = defineProps<{
-  blips: BlipData[];
+  blips: PositionedBlip[];
 }>();
 
-const blipsRef = toRef(props, 'blips');
-const { positionedBlips, blipsByQuadrant } = useRadarLayout(blipsRef);
-const { hoveredBlipId, setHover } = useHoverSync();
-
-const DEFAULT_VIEWBOX = `-500 -500 ${RADAR_SIZE} ${RADAR_SIZE}`;
-const { currentViewBox, tweenTo } = useViewBoxTween(DEFAULT_VIEWBOX);
+const hoveredId = ref<string | null>(null);
+const hoveredBlip = computed(() => props.blips.find((b) => b.id === hoveredId.value));
 
 const activeQuadrant = ref<Quadrant | null>(null);
+const viewBounds = computed(() => (activeQuadrant.value ? quadrantBounds(activeQuadrant.value) : FULL_BOUNDS));
+const { currentViewBox, tweenTo } = useViewBoxTween(toViewBox(FULL_BOUNDS));
 
-const VIEWBOX_TARGETS: Record<string, string> = {
-  techniques: '0 -500 500 500',
-  platforms: '0 0 500 500',
-  tools: '-500 0 500 500',
-  'languages-and-frameworks': '-500 -500 500 500',
-};
-
-function handleQuadrantClick(quadrant: Quadrant) {
-  if (activeQuadrant.value === quadrant) {
-    activeQuadrant.value = null;
-    tweenTo(DEFAULT_VIEWBOX);
-  } else {
-    activeQuadrant.value = quadrant;
-    tweenTo(VIEWBOX_TARGETS[quadrant]);
-  }
+// Zoom to a quadrant (or back out) and mirror it in the URL hash so the view
+// can be linked to, e.g. from a blip page's breadcrumb.
+function setActive(quadrant: Quadrant | null, animate = true) {
+  activeQuadrant.value = quadrant;
+  tweenTo(toViewBox(viewBounds.value), animate ? 400 : 0);
+  history.replaceState(null, '', quadrant ? `#${quadrant}` : location.pathname + location.search);
 }
 
-function handleBackClick() {
-  activeQuadrant.value = null;
-  tweenTo(DEFAULT_VIEWBOX);
+function toggleQuadrant(quadrant: Quadrant) {
+  setActive(activeQuadrant.value === quadrant ? null : quadrant);
 }
 
-// Generate ring arc paths for each quadrant (white backgrounds)
-const ringArcs = computed(() => {
-  const arcs: { path: string; quadrant: Quadrant; ringIndex: number }[] = [];
-  const quadrants = Object.keys(QUADRANT_CONFIGS) as Quadrant[];
+function isDimmed(quadrant: Quadrant): boolean {
+  return activeQuadrant.value !== null && activeQuadrant.value !== quadrant;
+}
 
-  for (const q of quadrants) {
-    const qConfig = QUADRANT_CONFIGS[q];
-    for (let i = 0; i < RING_CONFIGS.length; i++) {
-      const ring = RING_CONFIGS[i];
-      arcs.push({
-        path: generateRingArc(ring.innerRadius, ring.outerRadius, qConfig.startAngle, qConfig.endAngle),
-        quadrant: q,
-        ringIndex: i,
-      });
-    }
-  }
-
-  return arcs;
+onMounted(() => {
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  if (QUADRANT_ORDER.includes(fromHash)) setActive(fromHash, false);
 });
 
-// Quadrant title label positions — placed OUTSIDE the radar rings
-const quadrantTitleLabels = computed(() => {
-  return (Object.keys(QUADRANT_CONFIGS) as Quadrant[]).map((q) => {
-    const config = QUADRANT_CONFIGS[q];
-    const midAngle = (config.startAngle + config.endAngle) / 2;
-    const labelRadius = RADAR_RADIUS + 35;
-    return {
-      quadrant: q,
-      label: config.label,
-      x: labelRadius * Math.cos(midAngle),
-      y: labelRadius * Math.sin(midAngle),
-      color: config.color,
-    };
-  });
+// Quadrant titles sit just outside the outer ring on each quadrant's bisector,
+// in pills sized to the label (approximate glyph width of the 14px uppercase
+// title) and kept inside the full view.
+const TITLE_CHAR_WIDTH = 10.2;
+const quadrantTitles = QUADRANT_ORDER.map((quadrant) => {
+  const { startAngle, endAngle, label, color } = QUADRANT_CONFIGS[quadrant];
+  const mid = (startAngle + endAngle) / 2;
+  const r = RADAR_RADIUS + 35;
+  const width = label.length * TITLE_CHAR_WIDTH + 24;
+  const maxX = FULL_BOUNDS.x + FULL_BOUNDS.size - width / 2;
+  const x = Math.max(-maxX, Math.min(maxX, r * Math.cos(mid)));
+  return { quadrant, label, color, width, x, y: r * Math.sin(mid) };
 });
 
-// Per-quadrant ring labels — placed at the midpoint of each ring along the quadrant's bisecting axis
-const perQuadrantRingLabels = computed(() => {
-  const labels: { label: string; x: number; y: number; quadrant: Quadrant }[] = [];
-  const quadrants = Object.keys(QUADRANT_CONFIGS) as Quadrant[];
-
-  for (const q of quadrants) {
-    const config = QUADRANT_CONFIGS[q];
-    const midAngle = (config.startAngle + config.endAngle) / 2;
-
-    for (const ring of RING_CONFIGS) {
-      const midR = (ring.innerRadius + ring.outerRadius) / 2;
-      labels.push({
-        label: ring.label,
-        x: midR * Math.cos(midAngle),
-        y: midR * Math.sin(midAngle),
-        quadrant: q,
-      });
-    }
-  }
-
-  return labels;
-});
-
-const quadrantOrder: Quadrant[] = ['techniques', 'platforms', 'tools', 'languages-and-frameworks'];
-
-// Compute the angle from center to blip (for moved-in/out arc direction)
-function blipAngleFromCenter(x: number, y: number): number {
-  return Math.atan2(y, x);
-}
-
-// Quarter arc path for moved blips
-function movedArcPath(blip: { x: number; y: number; status: string }): string {
-  const angle = blipAngleFromCenter(blip.x, blip.y);
-  // moved-in: arc faces toward center (opposite direction from blip)
-  // moved-out: arc faces away from center (same direction as blip)
-  const centerAngle = blip.status === 'moved-in' ? angle + Math.PI : angle;
-  return quarterArcPath(blip.x, blip.y, 14, centerAngle);
-}
+const groups = computed(() =>
+  QUADRANT_ORDER.map((quadrant) => ({ quadrant, ...QUADRANT_CONFIGS[quadrant], rings: groupByRing(props.blips, quadrant) })),
+);
 </script>
 
 <template>
   <div class="radar-container">
-    <div class="radar-svg-wrapper">
+    <div class="radar-stage">
       <svg
         :viewBox="currentViewBox"
         class="radar-svg"
         xmlns="http://www.w3.org/2000/svg"
+        role="group"
+        aria-label="Technology radar"
       >
-        <!-- Ring backgrounds — white with subtle borders -->
-        <g class="ring-backgrounds">
-          <path
-            v-for="(arc, i) in ringArcs"
-            :key="i"
-            :d="arc.path"
-            stroke-width="1"
-            class="ring-arc"
-            :class="{ dimmed: activeQuadrant && activeQuadrant !== arc.quadrant }"
-            @click="handleQuadrantClick(arc.quadrant)"
-          />
-        </g>
+        <RadarBackdrop :active-quadrant="activeQuadrant" interactive @select="toggleQuadrant" />
 
-        <!-- Axis lines -->
-        <line x1="-475" y1="0" x2="475" y2="0" class="axis-line" stroke-width="1" />
-        <line x1="0" y1="-475" x2="0" y2="475" class="axis-line" stroke-width="1" />
-
-        <!-- Ring boundary circles -->
-        <circle
-          v-for="ring in RING_CONFIGS"
-          :key="ring.label"
-          cx="0"
-          cy="0"
-          :r="ring.outerRadius"
-          fill="none"
-          class="ring-boundary"
-          stroke-width="1"
-        />
-
-        <!-- Per-quadrant ring labels -->
-        <g class="ring-labels">
-          <text
-            v-for="rl in perQuadrantRingLabels"
-            :key="`${rl.quadrant}-${rl.label}`"
-            :x="rl.x"
-            :y="rl.y"
-            class="ring-label"
-            :class="{ dimmed: activeQuadrant && activeQuadrant !== rl.quadrant }"
-            text-anchor="middle"
-            dominant-baseline="middle"
-          >
-            {{ rl.label }}
-          </text>
-        </g>
-
-        <!-- Blips -->
-        <g class="blips">
-          <a
-            v-for="blip in positionedBlips"
+        <g>
+          <RadarBlip
+            v-for="blip in blips"
             :key="blip.id"
-            :href="`/radar/${blip.quadrant}/${blip.id}`"
-            class="blip-link"
-          >
-            <g
-              class="blip-group"
-              :class="{
-                highlighted: hoveredBlipId === blip.id,
-                dimmed: activeQuadrant && activeQuadrant !== blip.quadrant,
-              }"
-              @mouseenter="setHover(blip.id)"
-              @mouseleave="setHover(null)"
-            >
-              <!-- All blips have a filled circle base -->
-              <circle
-                :cx="blip.x"
-                :cy="blip.y"
-                r="10"
-                :fill="QUADRANT_CONFIGS[blip.quadrant].color"
-                :fill-opacity="hoveredBlipId === blip.id ? 1 : 0.85"
-                class="blip-dot"
-              />
-
-              <!-- New: outer ring around the circle -->
-              <circle
-                v-if="blip.status === 'new'"
-                :cx="blip.x"
-                :cy="blip.y"
-                r="14"
-                fill="none"
-                :stroke="QUADRANT_CONFIGS[blip.quadrant].color"
-                stroke-width="2"
-                :stroke-opacity="hoveredBlipId === blip.id ? 1 : 0.7"
-                class="blip-ring"
-              />
-
-              <!-- Moved in/out: quarter arc indicator -->
-              <path
-                v-if="blip.status === 'moved-in' || blip.status === 'moved-out'"
-                :d="movedArcPath(blip)"
-                fill="none"
-                :stroke="QUADRANT_CONFIGS[blip.quadrant].color"
-                stroke-width="2.5"
-                :stroke-opacity="hoveredBlipId === blip.id ? 1 : 0.7"
-                stroke-linecap="round"
-                class="blip-arc"
-              />
-
-              <!-- Number text -->
-              <text
-                :x="blip.x"
-                :y="blip.y"
-                fill="#fff"
-                font-size="9"
-                font-weight="700"
-                text-anchor="middle"
-                dominant-baseline="central"
-                class="blip-number"
-              >
-                {{ blip.number }}
-              </text>
-
-              <!-- Hover highlight ring -->
-              <circle
-                v-if="hoveredBlipId === blip.id"
-                :cx="blip.x"
-                :cy="blip.y"
-                r="12"
-                fill="none"
-                stroke-width="2"
-                class="blip-hover-ring"
-              />
-
-              <!-- Tooltip on hover -->
-              <g
-                v-if="hoveredBlipId === blip.id"
-                class="blip-tooltip"
-              >
-                <rect
-                  :x="blip.x + 16"
-                  :y="blip.y - 14"
-                  :width="blip.title.length * 7 + 16"
-                  height="24"
-                  rx="4"
-                  class="tooltip-bg"
-                  fill-opacity="0.9"
-                />
-                <text
-                  :x="blip.x + 24"
-                  :y="blip.y + 1"
-                  class="tooltip-text"
-                  font-size="11"
-                  dominant-baseline="middle"
-                >
-                  {{ blip.title }}
-                </text>
-              </g>
-            </g>
-          </a>
+            :blip="blip"
+            :href="blipHref(blip)"
+            :highlighted="hoveredId === blip.id"
+            :dimmed="isDimmed(blip.quadrant)"
+            @hover="hoveredId = $event"
+          />
         </g>
 
-        <!-- Quadrant title labels — outside the rings on light gray background -->
         <g
-          v-for="ql in quadrantTitleLabels"
-          :key="ql.quadrant"
-          class="quadrant-title-group"
-          :class="{ dimmed: activeQuadrant && activeQuadrant !== ql.quadrant }"
-          @click="handleQuadrantClick(ql.quadrant)"
+          v-for="qt in quadrantTitles"
+          :key="qt.quadrant"
+          class="quadrant-title"
+          :class="{ dimmed: isDimmed(qt.quadrant) }"
+          role="button"
+          tabindex="0"
+          :aria-label="activeQuadrant === qt.quadrant ? `Show full radar` : `Zoom to ${qt.label}`"
+          :aria-pressed="activeQuadrant === qt.quadrant"
+          @click="toggleQuadrant(qt.quadrant)"
+          @keydown.enter.prevent="toggleQuadrant(qt.quadrant)"
+          @keydown.space.prevent="toggleQuadrant(qt.quadrant)"
         >
-          <rect
-            :x="ql.x - 80"
-            :y="ql.y - 12"
-            width="160"
-            height="24"
-            rx="4"
-            class="quadrant-title-bg"
-          />
-          <text
-            :x="ql.x"
-            :y="ql.y"
-            :fill="ql.color"
-            class="quadrant-title-text"
-            text-anchor="middle"
-            dominant-baseline="middle"
-          >
-            {{ ql.label }}
+          <rect :x="qt.x - qt.width / 2" :y="qt.y - 15" :width="qt.width" height="30" rx="5" class="quadrant-title-bg" />
+          <text :x="qt.x" :y="qt.y" :fill="qt.color" class="quadrant-title-text" text-anchor="middle" dominant-baseline="middle">
+            {{ qt.label }}
           </text>
         </g>
+
+        <!-- Drawn last so it is never covered by other blips. -->
+        <RadarLabel
+          v-if="hoveredBlip"
+          :x="hoveredBlip.x"
+          :y="hoveredBlip.y"
+          :text="hoveredBlip.title"
+          :right-edge="viewBounds.x + viewBounds.size"
+        />
       </svg>
 
-      <!-- Legend -->
-      <div class="radar-legend">
+      <div class="radar-legend" aria-hidden="true">
         <span class="legend-item">
           <svg width="20" height="20" viewBox="0 0 20 20">
             <circle cx="10" cy="10" r="5" fill="currentColor" />
@@ -335,173 +143,94 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
         </span>
       </div>
 
-      <!-- Back button when zoomed -->
-      <button
-        v-if="activeQuadrant"
-        class="back-button"
-        @click="handleBackClick"
-      >
+      <button v-if="activeQuadrant" type="button" class="back-button" @click="setActive(null)">
         &larr; Back to full view
       </button>
     </div>
 
-    <!-- Blip lists sidebar -->
-    <div class="blip-lists">
-      <div
-        v-for="q in quadrantOrder"
-        :key="q"
+    <nav class="blip-lists" aria-label="Blips by quadrant">
+      <section
+        v-for="group in groups"
+        :key="group.quadrant"
         class="quadrant-section"
-        :class="{ active: activeQuadrant === q, dimmed: activeQuadrant && activeQuadrant !== q }"
+        :class="{ dimmed: isDimmed(group.quadrant) }"
       >
-        <h3
-          :style="{ color: QUADRANT_CONFIGS[q].color }"
-          @click="handleQuadrantClick(q)"
-        >
-          {{ QUADRANT_CONFIGS[q].label }}
+        <h3>
+          <button
+            type="button"
+            class="quadrant-heading"
+            :style="{ color: group.color }"
+            :aria-pressed="activeQuadrant === group.quadrant"
+            @click="toggleQuadrant(group.quadrant)"
+          >
+            {{ group.label }}
+          </button>
         </h3>
 
-        <div
-          v-for="ring in RING_ORDER"
-          :key="ring"
-          class="ring-group"
-        >
-          <template v-if="blipsByQuadrant[q][ring].length > 0">
-            <h4>{{ ring }}</h4>
-            <ul>
-              <li
-                v-for="blip in blipsByQuadrant[q][ring]"
-                :key="blip.id"
-                :class="{ highlighted: hoveredBlipId === blip.id }"
-                @mouseenter="setHover(blip.id)"
-                @mouseleave="setHover(null)"
-              >
-                <a :href="`/radar/${blip.quadrant}/${blip.id}`">
-                  <span
-                    class="blip-number-badge"
-                    :style="{ background: QUADRANT_CONFIGS[q].color }"
-                  >
-                    {{ blip.number }}
-                  </span>
-                  {{ blip.title }}
-                  <span class="blip-status-indicator">
-                    <svg v-if="blip.status === 'new'" width="12" height="12" viewBox="0 0 12 12">
-                      <circle cx="6" cy="6" r="3" :fill="QUADRANT_CONFIGS[q].color" />
-                      <circle cx="6" cy="6" r="5" fill="none" :stroke="QUADRANT_CONFIGS[q].color" stroke-width="1" />
-                    </svg>
-                    <svg v-else-if="blip.status === 'moved-in' || blip.status === 'moved-out'" width="12" height="12" viewBox="0 0 12 12">
-                      <circle cx="6" cy="6" r="3" :fill="QUADRANT_CONFIGS[q].color" />
-                      <path d="M 6 1 A 5 5 0 0 1 11 6" fill="none" :stroke="QUADRANT_CONFIGS[q].color" stroke-width="1" stroke-linecap="round" />
-                    </svg>
-                  </span>
-                </a>
-              </li>
-            </ul>
-          </template>
+        <div v-for="rg in group.rings" :key="rg.ring" class="ring-group">
+          <h4>{{ rg.label }}</h4>
+          <ul>
+            <li
+              v-for="blip in rg.blips"
+              :key="blip.id"
+              :class="{ highlighted: hoveredId === blip.id }"
+              @mouseenter="hoveredId = blip.id"
+              @mouseleave="hoveredId = null"
+            >
+              <a :href="blipHref(blip)" @focus="hoveredId = blip.id" @blur="hoveredId = null">
+                <span class="blip-number-badge" :style="{ background: group.color }">{{ blip.number }}</span>
+                {{ blip.title }}
+                <span class="blip-status-indicator" aria-hidden="true">
+                  <svg v-if="blip.status === 'new'" width="12" height="12" viewBox="0 0 12 12">
+                    <circle cx="6" cy="6" r="3" :fill="group.color" />
+                    <circle cx="6" cy="6" r="5" fill="none" :stroke="group.color" stroke-width="1" />
+                  </svg>
+                  <svg v-else-if="blip.status !== 'no-change'" width="12" height="12" viewBox="0 0 12 12">
+                    <circle cx="6" cy="6" r="3" :fill="group.color" />
+                    <path d="M 6 1 A 5 5 0 0 1 11 6" fill="none" :stroke="group.color" stroke-width="1" stroke-linecap="round" />
+                  </svg>
+                </span>
+              </a>
+            </li>
+          </ul>
         </div>
-      </div>
-    </div>
+      </section>
+    </nav>
   </div>
 </template>
 
 <style scoped>
 .radar-container {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 2rem;
   align-items: start;
 }
 
-@media (max-width: 1024px) {
-  .radar-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-.radar-svg-wrapper {
+.radar-stage {
   position: relative;
 }
 
 .radar-svg {
+  display: block;
   width: 100%;
   height: auto;
-  max-height: 80vh;
-  cursor: default;
+  /* Clip to the viewBox: when zoomed, the other quadrants must not spill out. */
+  overflow: hidden;
 }
 
-.ring-arc {
-  fill: var(--color-radar-ring-fill);
-  stroke: var(--color-radar-ring-stroke);
+.quadrant-title {
   cursor: pointer;
   transition: opacity 0.2s;
+  outline: none;
 }
 
-.ring-arc:hover {
-  fill: var(--color-bg-hover) !important;
-}
-
-.ring-arc.dimmed {
-  opacity: 0.4;
-}
-
-.axis-line {
-  stroke: var(--color-radar-ring-stroke);
-}
-
-.ring-boundary {
-  stroke: var(--color-radar-ring-stroke);
-}
-
-.ring-label {
-  font-size: 10px;
-  fill: var(--color-text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  pointer-events: none;
-  transition: opacity 0.2s;
-}
-
-.ring-label.dimmed {
-  opacity: 0.3;
-}
-
-.blip-link {
-  text-decoration: none;
-}
-
-.blip-group {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.blip-group.dimmed {
-  opacity: 0.15;
-}
-
-.blip-group.highlighted .blip-dot {
-  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.3));
-}
-
-.blip-dot {
-  transition: fill-opacity 0.15s;
-}
-
-.blip-number {
-  pointer-events: none;
-  user-select: none;
-}
-
-.quadrant-title-group {
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.quadrant-title-group.dimmed {
+.quadrant-title.dimmed {
   opacity: 0.3;
 }
 
 .quadrant-title-text {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -512,8 +241,13 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
   transition: fill 0.15s;
 }
 
-.quadrant-title-group:hover .quadrant-title-bg {
+.quadrant-title:hover .quadrant-title-bg {
   fill: var(--color-radar-label-bg-hover);
+}
+
+.quadrant-title:focus-visible .quadrant-title-bg {
+  stroke: var(--color-radar-highlight-stroke);
+  stroke-width: 2;
 }
 
 .radar-legend {
@@ -531,22 +265,10 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
   gap: 0.35rem;
 }
 
-.blip-hover-ring {
-  stroke: var(--color-radar-highlight-stroke);
-}
-
-.tooltip-bg {
-  fill: var(--color-radar-tooltip-bg);
-}
-
-.tooltip-text {
-  fill: var(--color-radar-tooltip-text);
-}
-
 .back-button {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
+  top: 0;
+  left: 0;
   background: var(--color-button-bg);
   color: var(--color-text-on-dark);
   border: none;
@@ -577,16 +299,23 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
 }
 
 .quadrant-section h3 {
+  margin-bottom: 0.5rem;
+}
+
+.quadrant-heading {
+  display: block;
+  width: 100%;
+  font: inherit;
   font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  text-align: left;
+  background: none;
   cursor: pointer;
   border: 1.5px solid currentColor;
   border-radius: 0.375rem;
   padding: 0.35rem 0.6rem;
-  text-align: left;
 }
 
 .ring-group + .ring-group {
@@ -606,8 +335,6 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
 
 .ring-group ul {
   list-style: none;
-  margin: 0;
-  padding: 0;
 }
 
 .ring-group li {
@@ -651,5 +378,53 @@ function movedArcPath(blip: { x: number; y: number; status: string }): string {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .radar-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop: fill the space the page gives us; the sidebar scrolls on its own. */
+@media (min-width: 1025px) and (min-height: 601px) {
+  .radar-container {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  /* A size container lets the SVG be the largest square that fits, so its
+     viewport always matches the (square) viewBox and a zoomed quadrant never
+     shows its neighbours in letterbox space. */
+  .radar-stage {
+    min-height: 0;
+    container-type: size;
+    display: grid;
+    place-items: center;
+  }
+
+  .radar-svg {
+    width: min(100cqw, 100cqh);
+    height: min(100cqw, 100cqh);
+  }
+
+  .radar-legend {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    margin: 0;
+  }
+
+  .blip-lists {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.5rem;
+  }
 }
 </style>

@@ -1,4 +1,11 @@
 :root {
+  /* Layout */
+  --header-h: 3.5rem;
+
+  /* Fonts (self-hosted via @fontsource-variable, imported in Layout.astro) */
+  --font-sans: 'Inter Variable', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
   /* Backgrounds */
   --color-bg-body: #fafafa;
   --color-bg-surface: #fff;

@@ -1,3 +1,3 @@
 export const site = {
-  repoUrl: "https://github.com/example/technology-radar",
+  repoUrl: "https://github.com/infrashift/technology-radar",
 } as const;

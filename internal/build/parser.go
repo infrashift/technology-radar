@@ -1,12 +1,11 @@
 package build
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 // Blip represents the frontmatter of an MDX blip file.
@@ -27,22 +26,22 @@ type History struct {
 	Ring string `json:"ring" yaml:"ring"`
 }
 
-// RawBlipFile holds the original filename and raw bytes for copying.
+// RawBlipFile holds a blip source file and its extracted frontmatter.
 type RawBlipFile struct {
-	Filename string
-	Content  []byte
+	Filename    string // base name, e.g. "rust.mdx"
+	Path        string // path as read, used in error messages
+	Content     []byte
+	Frontmatter []byte // YAML between the --- delimiters, starting on line 2 of the file
 }
 
-// ParseAllBlips walks a directory and parses MDX frontmatter from all .mdx files.
-func ParseAllBlips(dir string) ([]Blip, []RawBlipFile, error) {
-	var blips []Blip
-	var rawFiles []RawBlipFile
-
+// ReadBlipFiles reads every .mdx file in dir and extracts its frontmatter.
+func ReadBlipFiles(dir string) ([]RawBlipFile, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading directory %s: %w", dir, err)
+		return nil, fmt.Errorf("reading directory %s: %w", dir, err)
 	}
 
+	var files []RawBlipFile
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".mdx") {
 			continue
@@ -51,50 +50,57 @@ func ParseAllBlips(dir string) ([]Blip, []RawBlipFile, error) {
 		path := filepath.Join(dir, entry.Name())
 		content, err := os.ReadFile(path)
 		if err != nil {
-			return nil, nil, fmt.Errorf("reading %s: %w", path, err)
+			return nil, fmt.Errorf("reading %s: %w", path, err)
 		}
 
-		blip, err := parseFrontmatter(content, entry.Name())
+		fm, err := SplitFrontmatter(content)
 		if err != nil {
-			return nil, nil, fmt.Errorf("parsing %s: %w", entry.Name(), err)
+			return nil, fmt.Errorf("%s: %w", path, err)
 		}
 
-		blips = append(blips, blip)
-		rawFiles = append(rawFiles, RawBlipFile{
-			Filename: entry.Name(),
-			Content:  content,
+		files = append(files, RawBlipFile{
+			Filename:    entry.Name(),
+			Path:        path,
+			Content:     content,
+			Frontmatter: fm,
 		})
 	}
 
-	if len(blips) == 0 {
-		return nil, nil, fmt.Errorf("no .mdx files found in %s", dir)
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no .mdx files found in %s", dir)
 	}
 
-	return blips, rawFiles, nil
+	return files, nil
 }
 
-func parseFrontmatter(content []byte, filename string) (Blip, error) {
-	str := string(content)
+// SplitFrontmatter returns the YAML frontmatter of an MDX file. The file must
+// start with a "---" line, and the frontmatter ends at the next line that is
+// exactly "---".
+func SplitFrontmatter(content []byte) ([]byte, error) {
+	content = bytes.TrimPrefix(content, []byte("\xef\xbb\xbf"))
 
-	// Split on --- delimiters
-	parts := strings.SplitN(str, "---", 3)
-	if len(parts) < 3 {
-		return Blip{}, fmt.Errorf("missing frontmatter delimiters in %s", filename)
+	first, rest, ok := bytes.Cut(content, []byte("\n"))
+	if !ok || !isDelimiter(first) {
+		return nil, fmt.Errorf("missing frontmatter: file must start with a --- line")
 	}
 
-	frontmatter := strings.TrimSpace(parts[1])
-	if frontmatter == "" {
-		return Blip{}, fmt.Errorf("empty frontmatter in %s", filename)
+	for off := 0; off < len(rest); {
+		line, _, found := bytes.Cut(rest[off:], []byte("\n"))
+		if isDelimiter(line) {
+			fm := rest[:off]
+			if len(bytes.TrimSpace(fm)) == 0 {
+				return nil, fmt.Errorf("empty frontmatter")
+			}
+			return fm, nil
+		}
+		if !found {
+			break
+		}
+		off += len(line) + 1
 	}
+	return nil, fmt.Errorf("unterminated frontmatter: no closing --- line")
+}
 
-	var blip Blip
-	if err := yaml.Unmarshal([]byte(frontmatter), &blip); err != nil {
-		return Blip{}, fmt.Errorf("unmarshaling frontmatter in %s: %w", filename, err)
-	}
-
-	if blip.ID == "" {
-		return Blip{}, fmt.Errorf("missing 'id' in frontmatter of %s", filename)
-	}
-
-	return blip, nil
+func isDelimiter(line []byte) bool {
+	return string(bytes.TrimRight(line, " \t\r")) == "---"
 }

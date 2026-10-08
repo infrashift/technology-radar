@@ -1,6 +1,25 @@
 content_dir: content/blips
-schema_path: schema/radar.cue
 web_dir: web
 output_json: web/src/data/blips-generated.json
 output_content: web/src/content/blips
 version: "2025.11"
+
+quadrants:
+  - slug: techniques
+    label: "Techniques"
+  - slug: platforms
+    label: "Platforms"
+  - slug: tools
+    label: "Tools"
+  - slug: languages-and-frameworks
+    label: "Languages & Frameworks"
+
+rings:
+  - slug: adopt
+    label: "Adopt"
+  - slug: trial
+    label: "Trial"
+  - slug: assess
+    label: "Assess"
+  - slug: hold
+    label: "Hold"

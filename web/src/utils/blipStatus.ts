@@ -1,6 +1,6 @@
 import type { BlipData } from '../types/radar';
 import type { BlipStatus } from '../types/radar';
-import { RING_ORDER } from '../types/radar';
+import { RING_ORDER } from '../config/radar';
 
 /**
  * Derive the movement status of a blip from its isNew flag and history.

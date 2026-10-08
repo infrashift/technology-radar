@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import type { SearchableBlip, Quadrant, Ring } from '../types/radar';
-import { QUADRANT_CONFIGS, RING_ORDER } from '../types/radar';
+import { QUADRANT_CONFIGS, RING_ORDER, RING_LABELS, RING_COLORS } from '../config/radar';
+import { blipHref } from '../utils/url';
 
 const props = defineProps<{
   blips: SearchableBlip[];
@@ -11,12 +12,7 @@ const searchQuery = ref('');
 const selectedQuadrants = ref<Set<Quadrant>>(new Set());
 const selectedRings = ref<Set<Ring>>(new Set());
 
-const ringColors: Record<Ring, string> = {
-  adopt: '#2da44e',
-  trial: '#0969da',
-  assess: '#bf8700',
-  hold: '#cf222e',
-};
+const ringColors = RING_COLORS;
 
 const quadrantEntries = Object.entries(QUADRANT_CONFIGS) as [Quadrant, typeof QUADRANT_CONFIGS[Quadrant]][];
 
@@ -73,6 +69,7 @@ function truncate(text: string, max: number): string {
         v-model="searchQuery"
         type="text"
         placeholder="Search by name or description..."
+        aria-label="Search blips"
         autofocus
         class="search-input"
       />
@@ -86,6 +83,7 @@ function truncate(text: string, max: number): string {
             v-for="[key, config] in quadrantEntries"
             :key="key"
             :class="['filter-btn', { active: selectedQuadrants.has(key) }]"
+            :aria-pressed="selectedQuadrants.has(key)"
             :style="{
               '--btn-color': config.color,
               borderColor: config.color,
@@ -106,6 +104,7 @@ function truncate(text: string, max: number): string {
             v-for="ring in RING_ORDER"
             :key="ring"
             :class="['filter-btn', { active: selectedRings.has(ring) }]"
+            :aria-pressed="selectedRings.has(ring)"
             :style="{
               '--btn-color': ringColors[ring],
               borderColor: ringColors[ring],
@@ -114,7 +113,7 @@ function truncate(text: string, max: number): string {
             }"
             @click="toggleRing(ring)"
           >
-            {{ ring }}
+            {{ RING_LABELS[ring] }}
           </button>
         </div>
       </div>
@@ -124,12 +123,12 @@ function truncate(text: string, max: number): string {
 
     <ul v-if="filteredBlips.length > 0" class="results-list">
       <li v-for="blip in filteredBlips" :key="blip.id" class="result-item">
-        <a :href="`/radar/${blip.quadrant}/${blip.id}`" class="result-link">
+        <a :href="blipHref(blip)" class="result-link">
           <div class="result-header">
             <span class="result-title">{{ blip.title }}</span>
             <div class="result-badges">
               <span class="ring-badge" :style="{ background: ringColors[blip.ring] }">
-                {{ blip.ring }}
+                {{ RING_LABELS[blip.ring] }}
               </span>
               <span class="quadrant-label">{{ QUADRANT_CONFIGS[blip.quadrant].label }}</span>
               <span v-if="blip.isNew" class="new-badge">NEW</span>

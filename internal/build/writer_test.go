@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/infrashift/technology-radar/internal/config"
 )
 
 func TestWriteJSON(t *testing.T) {
@@ -86,6 +89,60 @@ func TestWriteJSONOmitsEmptyCIIdentifier(t *testing.T) {
 	}
 }
 
+func TestWriteRadarConfig(t *testing.T) {
+	dir := t.TempDir()
+	outPath := filepath.Join(dir, "radar-config.json")
+
+	cfg := config.Config{
+		Version: "2025.11",
+		Quadrants: []config.Entry{
+			{Slug: "techniques", Label: "Techniques"},
+			{Slug: "platforms", Label: "Platforms"},
+			{Slug: "tools", Label: "Tools"},
+			{Slug: "languages-and-frameworks", Label: "Languages & Frameworks"},
+		},
+		Rings: []config.Entry{
+			{Slug: "adopt", Label: "Adopt"},
+			{Slug: "trial", Label: "Trial"},
+			{Slug: "assess", Label: "Assess"},
+			{Slug: "hold", Label: "Hold"},
+		},
+	}
+
+	if err := WriteRadarConfig(outPath, cfg); err != nil {
+		t.Fatalf("WriteRadarConfig failed: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if !strings.Contains(string(data), `"Languages & Frameworks"`) {
+		t.Errorf("expected unescaped ampersand in output, got:\n%s", data)
+	}
+
+	var parsed radarConfig
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("unmarshaling output: %v", err)
+	}
+
+	if parsed.Version != "2025.11" {
+		t.Errorf("expected version '2025.11', got %q", parsed.Version)
+	}
+	if len(parsed.Quadrants) != 4 {
+		t.Fatalf("expected 4 quadrants, got %d", len(parsed.Quadrants))
+	}
+	if parsed.Quadrants[0].Label != "Techniques" {
+		t.Errorf("expected first quadrant label 'Techniques', got %q", parsed.Quadrants[0].Label)
+	}
+	if len(parsed.Rings) != 4 {
+		t.Fatalf("expected 4 rings, got %d", len(parsed.Rings))
+	}
+	if parsed.Rings[3].Slug != "hold" {
+		t.Errorf("expected last ring slug 'hold', got %q", parsed.Rings[3].Slug)
+	}
+}
+
 func TestCopyMDXFiles(t *testing.T) {
 	dir := t.TempDir()
 	destDir := filepath.Join(dir, "output")
@@ -107,5 +164,25 @@ func TestCopyMDXFiles(t *testing.T) {
 		if string(data) != string(f.Content) {
 			t.Errorf("content mismatch for %s", f.Filename)
 		}
+	}
+}
+
+func TestCopyMDXFilesRemovesStale(t *testing.T) {
+	destDir := t.TempDir()
+	for _, name := range []string{"stale.mdx", "keep.txt"} {
+		if err := os.WriteFile(filepath.Join(destDir, name), []byte("old"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := CopyMDXFiles([]RawBlipFile{{Filename: "one.mdx", Content: []byte("new")}}, destDir); err != nil {
+		t.Fatalf("CopyMDXFiles failed: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(destDir, "stale.mdx")); !os.IsNotExist(err) {
+		t.Error("expected stale.mdx to be removed")
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "keep.txt")); err != nil {
+		t.Error("expected non-MDX files to be left alone")
 	}
 }

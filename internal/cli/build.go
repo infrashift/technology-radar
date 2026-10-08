@@ -2,55 +2,49 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/infrashift/technology-radar/internal/build"
-	"github.com/infrashift/technology-radar/internal/cuegen"
 )
 
-var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Parse, validate, and generate radar artifacts",
-	RunE:  runBuild,
-}
-
-func init() {
-	rootCmd.AddCommand(buildCmd)
+func newBuildCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "build",
+		Short: "Parse, validate, and generate radar artifacts",
+		RunE:  runBuild,
+	}
 }
 
 func runBuild(cmd *cobra.Command, args []string) error {
-	contentDir := viper.GetString("content_dir")
-	schemaPath := viper.GetString("schema_path")
-	outputJSON := viper.GetString("output_json")
-	outputContent := viper.GetString("output_content")
-	version := viper.GetString("version")
-
-	// Parse MDX files
-	blips, rawFiles, err := build.ParseAllBlips(contentDir)
+	cfg, err := loadConfig(cmd)
 	if err != nil {
-		return fmt.Errorf("parsing blips: %w", err)
+		return err
 	}
-	fmt.Printf("Parsed %d blips from %s\n", len(blips), contentDir)
 
-	// Validate against CUE schema
-	if err := cuegen.Validate(schemaPath, blips, version); err != nil {
-		return fmt.Errorf("validation failed: %w", err)
+	files, blips, err := loadBlips(cmd, cfg)
+	if err != nil {
+		return err
 	}
-	fmt.Println("All blips passed CUE schema validation")
+	out := cmd.OutOrStdout()
 
-	// Write JSON artifact
-	if err := build.WriteJSON(outputJSON, blips); err != nil {
+	if err := build.WriteJSON(cfg.OutputJSON, blips); err != nil {
 		return fmt.Errorf("writing JSON: %w", err)
 	}
-	fmt.Printf("Generated %s\n", outputJSON)
+	fmt.Fprintf(out, "Generated %s\n", cfg.OutputJSON)
 
-	// Copy MDX files to Astro content directory
-	if err := build.CopyMDXFiles(rawFiles, outputContent); err != nil {
+	// The frontend imports radar-config.json from next to the blip JSON.
+	configPath := filepath.Join(filepath.Dir(cfg.OutputJSON), "radar-config.json")
+	if err := build.WriteRadarConfig(configPath, cfg); err != nil {
+		return fmt.Errorf("writing radar config: %w", err)
+	}
+	fmt.Fprintf(out, "Generated %s\n", configPath)
+
+	if err := build.CopyMDXFiles(files, cfg.OutputContent); err != nil {
 		return fmt.Errorf("copying MDX files: %w", err)
 	}
-	fmt.Printf("Copied %d MDX files to %s\n", len(rawFiles), outputContent)
+	fmt.Fprintf(out, "Copied %d MDX files to %s\n", len(files), cfg.OutputContent)
 
 	return nil
 }

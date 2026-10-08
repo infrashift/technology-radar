@@ -12,13 +12,24 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
 
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 export function useViewBoxTween(defaultViewBox: string) {
   const currentViewBox = ref(defaultViewBox);
   let animationId: number | null = null;
 
+  /** Animate to target; a duration of 0 (or reduced motion) jumps immediately. */
   function tweenTo(target: string, duration: number = 400) {
     if (animationId !== null) {
       cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+
+    if (duration <= 0 || prefersReducedMotion()) {
+      currentViewBox.value = target;
+      return;
     }
 
     const from = parseViewBox(currentViewBox.value);
@@ -26,24 +37,10 @@ export function useViewBoxTween(defaultViewBox: string) {
     const startTime = performance.now();
 
     function animate(now: number) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = Math.min((now - startTime) / duration, 1);
       const eased = easeOutCubic(progress);
-
-      const current: [number, number, number, number] = [
-        from[0] + (to[0] - from[0]) * eased,
-        from[1] + (to[1] - from[1]) * eased,
-        from[2] + (to[2] - from[2]) * eased,
-        from[3] + (to[3] - from[3]) * eased,
-      ];
-
-      currentViewBox.value = formatViewBox(current);
-
-      if (progress < 1) {
-        animationId = requestAnimationFrame(animate);
-      } else {
-        animationId = null;
-      }
+      currentViewBox.value = formatViewBox(from.map((f, i) => f + (to[i] - f) * eased) as [number, number, number, number]);
+      animationId = progress < 1 ? requestAnimationFrame(animate) : null;
     }
 
     animationId = requestAnimationFrame(animate);

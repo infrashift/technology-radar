@@ -4,54 +4,66 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+
+	"github.com/infrashift/technology-radar/internal/build"
+	"github.com/infrashift/technology-radar/internal/config"
+	"github.com/infrashift/technology-radar/internal/validate"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "radar",
-	Short: "Technology Radar CLI - validate, build, and scaffold radar content",
-}
+const defaultConfigFile = ".radar.yaml"
 
-func init() {
-	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().String("config", "", "config file (default is .radar.yaml)")
-	rootCmd.PersistentFlags().String("content-dir", "", "content directory")
-	rootCmd.PersistentFlags().String("schema-path", "", "CUE schema path")
-	rootCmd.PersistentFlags().String("web-dir", "", "web project directory")
-
-	viper.BindPFlag("content_dir", rootCmd.PersistentFlags().Lookup("content-dir"))
-	viper.BindPFlag("schema_path", rootCmd.PersistentFlags().Lookup("schema-path"))
-	viper.BindPFlag("web_dir", rootCmd.PersistentFlags().Lookup("web-dir"))
-}
-
-func initConfig() {
-	if cfgFile, _ := rootCmd.Flags().GetString("config"); cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-	} else {
-		viper.SetConfigName(".radar")
-		viper.SetConfigType("yaml")
-		viper.AddConfigPath(".")
+// newRootCmd builds a fresh command tree, so each invocation (and each test)
+// starts with clean flag state.
+func newRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:          "radar",
+		Short:        "Technology Radar CLI - validate, build, and scaffold radar content",
+		SilenceUsage: true,
 	}
 
-	viper.SetEnvPrefix("RADAR")
-	viper.AutomaticEnv()
+	pf := root.PersistentFlags()
+	pf.String("config", defaultConfigFile, "config file")
+	pf.String("content-dir", "", "content directory (overrides config)")
+	pf.String("web-dir", "", "web project directory (overrides config)")
 
-	// Defaults
-	viper.SetDefault("content_dir", "content/blips")
-	viper.SetDefault("schema_path", "schema/radar.cue")
-	viper.SetDefault("web_dir", "web")
-	viper.SetDefault("output_json", "web/src/data/blips-generated.json")
-	viper.SetDefault("output_content", "web/src/content/blips")
-	viper.SetDefault("version", "2025.11")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			fmt.Printf("Warning: error reading config: %v\n", err)
-		}
-	}
+	root.AddCommand(newBuildCmd(), newValidateCmd(), newScaffoldCmd())
+	return root
 }
 
 func Execute() error {
-	return rootCmd.Execute()
+	return newRootCmd().Execute()
+}
+
+// loadConfig loads the config file named by --config, then applies any
+// directory flags that were set explicitly.
+func loadConfig(cmd *cobra.Command) (config.Config, error) {
+	flags := cmd.Flags()
+	path, _ := flags.GetString("config")
+	cfg, err := config.Load(path, flags.Changed("config"))
+	if err != nil {
+		return config.Config{}, err
+	}
+	if flags.Changed("content-dir") {
+		cfg.ContentDir, _ = flags.GetString("content-dir")
+	}
+	if flags.Changed("web-dir") {
+		cfg.WebDir, _ = flags.GetString("web-dir")
+	}
+	return cfg, nil
+}
+
+// loadBlips reads and validates every blip in the configured content directory.
+func loadBlips(cmd *cobra.Command, cfg config.Config) ([]build.RawBlipFile, []build.Blip, error) {
+	files, err := build.ReadBlipFiles(cfg.ContentDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("reading blips: %w", err)
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "Parsed %d blips from %s\n", len(files), cfg.ContentDir)
+
+	blips, err := validate.Blips(cfg, files)
+	if err != nil {
+		return nil, nil, fmt.Errorf("validation failed: %w", err)
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), "All blips passed validation")
+	return files, blips, nil
 }

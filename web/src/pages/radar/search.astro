@@ -1,6 +1,6 @@
 ---
-import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
+import { getRadarData } from '../../lib/blips';
 import BlipSearch from '../../components/BlipSearch.vue';
 import type { SearchableBlip } from '../../types/radar';
 
@@ -13,17 +13,16 @@ function stripMarkdown(md: string): string {
     .trim();
 }
 
-const blips = await getCollection('blips');
+const { entries } = await getRadarData();
 
-const searchIndex: SearchableBlip[] = blips.map((blip) => ({
-  id: blip.data.id,
-  title: blip.data.title,
-  quadrant: blip.data.quadrant,
-  ring: blip.data.ring,
-  isNew: blip.data.isNew,
-  history: blip.data.history,
-  relatedBlips: blip.data.relatedBlips,
-  description: stripMarkdown(blip.body || ''),
+// Only what the search UI shows or matches on, to keep the island's props small.
+const searchIndex: SearchableBlip[] = entries.map(({ data, body }) => ({
+  id: data.id,
+  title: data.title,
+  quadrant: data.quadrant,
+  ring: data.ring,
+  isNew: data.isNew,
+  description: stripMarkdown(body || ''),
 }));
 ---
 

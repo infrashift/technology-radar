@@ -3,182 +3,103 @@ package build
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestParseFrontmatterBasic(t *testing.T) {
-	content := []byte(`---
-id: "test-blip"
-title: "Test Blip"
-quadrant: "tools"
-ring: "adopt"
-isNew: true
-history:
-  - date: "2025-11"
-    ring: "adopt"
----
+func TestSplitFrontmatter(t *testing.T) {
+	content := []byte("---\nid: \"test-blip\"\ntitle: \"A --- B\"\n---\n\nBody with --- dashes.\n\n---\n")
 
-Some content here.
-`)
-
-	blip, err := parseFrontmatter(content, "test-blip.mdx")
+	fm, err := SplitFrontmatter(content)
 	if err != nil {
-		t.Fatalf("parseFrontmatter failed: %v", err)
+		t.Fatalf("SplitFrontmatter failed: %v", err)
 	}
-
-	if blip.ID != "test-blip" {
-		t.Errorf("expected id 'test-blip', got %q", blip.ID)
-	}
-	if blip.Title != "Test Blip" {
-		t.Errorf("expected title 'Test Blip', got %q", blip.Title)
-	}
-	if blip.Quadrant != "tools" {
-		t.Errorf("expected quadrant 'tools', got %q", blip.Quadrant)
-	}
-	if blip.Ring != "adopt" {
-		t.Errorf("expected ring 'adopt', got %q", blip.Ring)
-	}
-	if !blip.IsNew {
-		t.Error("expected isNew to be true")
-	}
-	if len(blip.History) != 1 {
-		t.Fatalf("expected 1 history entry, got %d", len(blip.History))
-	}
-	if blip.History[0].Date != "2025-11" {
-		t.Errorf("expected history date '2025-11', got %q", blip.History[0].Date)
+	want := "id: \"test-blip\"\ntitle: \"A --- B\"\n"
+	if string(fm) != want {
+		t.Errorf("expected %q, got %q", want, fm)
 	}
 }
 
-func TestParseFrontmatterWithCIIdentifier(t *testing.T) {
-	content := []byte(`---
-id: "ci-blip"
-title: "CI Blip"
-quadrant: "platforms"
-ring: "trial"
-isNew: false
-ciIdentifier: "01944b6e-40c0-7000-8000-000000000000"
----
+func TestSplitFrontmatterCRLFAndBOM(t *testing.T) {
+	content := []byte("\xef\xbb\xbf---\r\nid: x\r\n---\r\nbody\r\n")
 
-Content.
-`)
-
-	blip, err := parseFrontmatter(content, "ci-blip.mdx")
+	fm, err := SplitFrontmatter(content)
 	if err != nil {
-		t.Fatalf("parseFrontmatter failed: %v", err)
+		t.Fatalf("SplitFrontmatter failed: %v", err)
 	}
-
-	if blip.CIIdentifier != "01944b6e-40c0-7000-8000-000000000000" {
-		t.Errorf("expected ciIdentifier, got %q", blip.CIIdentifier)
-	}
-}
-
-func TestParseFrontmatterWithoutCIIdentifier(t *testing.T) {
-	content := []byte(`---
-id: "no-ci"
-title: "No CI"
-quadrant: "tools"
-ring: "hold"
-isNew: false
----
-
-Content.
-`)
-
-	blip, err := parseFrontmatter(content, "no-ci.mdx")
-	if err != nil {
-		t.Fatalf("parseFrontmatter failed: %v", err)
-	}
-
-	if blip.CIIdentifier != "" {
-		t.Errorf("expected empty ciIdentifier, got %q", blip.CIIdentifier)
+	if string(fm) != "id: x\r\n" {
+		t.Errorf("unexpected frontmatter %q", fm)
 	}
 }
 
-func TestParseFrontmatterMissingID(t *testing.T) {
-	content := []byte(`---
-title: "No ID"
-quadrant: "tools"
-ring: "hold"
----
-
-Content.
-`)
-
-	_, err := parseFrontmatter(content, "no-id.mdx")
-	if err == nil {
-		t.Fatal("expected error for missing id")
+func TestSplitFrontmatterErrors(t *testing.T) {
+	tests := map[string]struct {
+		content string
+		want    string
+	}{
+		"no delimiters":  {"Just some content.\n", "missing frontmatter"},
+		"text before":    {"intro\n---\nid: x\n---\n", "missing frontmatter"},
+		"unterminated":   {"---\nid: x\nbody\n", "unterminated"},
+		"empty":          {"---\n---\nbody\n", "empty frontmatter"},
+		"inline dashes":  {"---\nid: x --- y\n", "unterminated"},
+		"no newline end": {"---", "missing frontmatter"},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := SplitFrontmatter([]byte(tc.content))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("expected error containing %q, got %v", tc.want, err)
+			}
+		})
 	}
 }
 
-func TestParseFrontmatterMissingDelimiters(t *testing.T) {
-	content := []byte(`no frontmatter here`)
-
-	_, err := parseFrontmatter(content, "bad.mdx")
-	if err == nil {
-		t.Fatal("expected error for missing delimiters")
-	}
-}
-
-func TestParseAllBlips(t *testing.T) {
+func TestReadBlipFiles(t *testing.T) {
 	dir := t.TempDir()
 
 	files := map[string]string{
-		"alpha.mdx": `---
-id: "alpha"
-title: "Alpha"
-quadrant: "tools"
-ring: "adopt"
-isNew: false
----
-
-Alpha content.
-`,
-		"beta.mdx": `---
-id: "beta"
-title: "Beta"
-quadrant: "platforms"
-ring: "trial"
-isNew: true
-ciIdentifier: "01944b6e-40c0-7000-8000-000000000001"
----
-
-Beta content.
-`,
+		"blip-a.mdx": "---\nid: \"blip-a\"\n---\n\nContent A\n",
+		"blip-b.mdx": "---\nid: \"blip-b\"\n---\n\nContent B\n",
+		"readme.txt": "Not a blip",
 	}
-
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
+	if err := os.Mkdir(filepath.Join(dir, "nested.mdx"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 
-	blips, rawFiles, err := ParseAllBlips(dir)
+	raw, err := ReadBlipFiles(dir)
 	if err != nil {
-		t.Fatalf("ParseAllBlips failed: %v", err)
+		t.Fatalf("ReadBlipFiles failed: %v", err)
 	}
-
-	if len(blips) != 2 {
-		t.Fatalf("expected 2 blips, got %d", len(blips))
+	if len(raw) != 2 {
+		t.Fatalf("expected 2 files, got %d", len(raw))
 	}
-	if len(rawFiles) != 2 {
-		t.Fatalf("expected 2 raw files, got %d", len(rawFiles))
+	if raw[0].Filename != "blip-a.mdx" || raw[0].Path != filepath.Join(dir, "blip-a.mdx") {
+		t.Errorf("unexpected file metadata: %+v", raw[0])
 	}
-
-	// Find the beta blip and check ciIdentifier
-	for _, b := range blips {
-		if b.ID == "beta" {
-			if b.CIIdentifier != "01944b6e-40c0-7000-8000-000000000001" {
-				t.Errorf("expected ciIdentifier on beta, got %q", b.CIIdentifier)
-			}
-		}
+	if string(raw[0].Frontmatter) != "id: \"blip-a\"\n" {
+		t.Errorf("unexpected frontmatter %q", raw[0].Frontmatter)
 	}
 }
 
-func TestParseAllBlipsEmptyDir(t *testing.T) {
+func TestReadBlipFilesBadFrontmatter(t *testing.T) {
 	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "bad.mdx"), []byte("no frontmatter"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
-	_, _, err := ParseAllBlips(dir)
-	if err == nil {
+	_, err := ReadBlipFiles(dir)
+	if err == nil || !strings.Contains(err.Error(), "bad.mdx") {
+		t.Errorf("expected error naming bad.mdx, got %v", err)
+	}
+}
+
+func TestReadBlipFilesEmptyDir(t *testing.T) {
+	if _, err := ReadBlipFiles(t.TempDir()); err == nil {
 		t.Fatal("expected error for empty directory")
 	}
 }

@@ -1,4 +1,5 @@
 import { site } from './site';
+import { withBase } from '../utils/url';
 
 export interface FaqItem {
   question: string;
@@ -74,7 +75,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "Can I suggest a technology for the radar?",
     answer: `<p>Yes! The radar benefits from diverse perspectives and real-world experience. If you've been working with a technology that you believe should be on the radar — or if you think an existing item should be reconsidered — we welcome your input.</p>
-<p>Open an issue in the <a href="${site.repoUrl}" target="_blank" rel="noopener noreferrer">source repository</a> with your suggestion, along with context about your experience and why you think it's noteworthy. See the <a href="/radar/contribute">Contribute</a> page for more details.</p>`,
+<p>Open an issue in the <a href="${site.repoUrl}" target="_blank" rel="noopener noreferrer">source repository</a> with your suggestion, along with context about your experience and why you think it's noteworthy. See the <a href="${withBase('/radar/contribute')}">Contribute</a> page for more details.</p>`,
   },
   {
     question: "What is the difference between the quadrants?",
@@ -84,6 +85,6 @@ export const faqItems: FaqItem[] = [
   {
     question: "Where is the source code?",
     answer: `<p>The Technology Radar is open source. You can find the source code, report issues, and contribute in the <a href="${site.repoUrl}" target="_blank" rel="noopener noreferrer">source repository</a>.</p>
-<p>See the <a href="/radar/contribute">Contribute</a> page for guidance on how to get involved.</p>`,
+<p>See the <a href="${withBase('/radar/contribute')}">Contribute</a> page for guidance on how to get involved.</p>`,
   },
 ];

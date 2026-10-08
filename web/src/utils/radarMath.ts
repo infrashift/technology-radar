@@ -2,7 +2,7 @@ import { arc } from 'd3-shape';
 
 /**
  * Convert polar coordinates (angle, radius) to cartesian (x, y).
- * Angle is in radians, measured clockwise from the positive y-axis.
+ * Angle is in radians, measured clockwise from the positive x-axis (SVG y points down).
  */
 export function polarToCartesian(angle: number, radius: number): { x: number; y: number } {
   return {
@@ -60,6 +60,8 @@ export function clampToRing(
 
 /**
  * Clamp a point to stay within a quadrant's angular range.
+ * Works on the offset from the quadrant's mid-angle so quadrants that straddle
+ * the ±π wrap of atan2 clamp to the nearest edge instead of the opposite one.
  */
 export function clampToQuadrant(
   x: number,
@@ -70,16 +72,14 @@ export function clampToQuadrant(
 ): { x: number; y: number } {
   const angle = Math.atan2(y, x);
   const dist = Math.sqrt(x * x + y * y);
-  const minAngle = startAngle + padding;
-  const maxAngle = endAngle - padding;
+  const mid = (startAngle + endAngle) / 2;
+  const halfWidth = (endAngle - startAngle) / 2 - padding;
+  const offset = Math.atan2(Math.sin(angle - mid), Math.cos(angle - mid));
 
-  if (angle < minAngle) {
-    return polarToCartesian(minAngle, dist);
+  if (Math.abs(offset) <= halfWidth) {
+    return { x, y };
   }
-  if (angle > maxAngle) {
-    return polarToCartesian(maxAngle, dist);
-  }
-  return { x, y };
+  return polarToCartesian(mid + Math.sign(offset) * halfWidth, dist);
 }
 
 /**
@@ -97,7 +97,7 @@ export function generateRingArc(
     .startAngle(startAngle + Math.PI / 2)  // d3 arc measures from 12 o'clock
     .endAngle(endAngle + Math.PI / 2);
 
-  return generator(undefined as any) || '';
+  return generator(undefined) || '';
 }
 
 /**
