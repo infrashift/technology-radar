@@ -96,6 +96,7 @@ const groups = computed(() =>
           :key="qt.quadrant"
           class="quadrant-title"
           :class="{ dimmed: isDimmed(qt.quadrant) }"
+          :style="{ '--quadrant-color': qt.color }"
           role="button"
           tabindex="0"
           :aria-label="activeQuadrant === qt.quadrant ? `Show full radar` : `Zoom to ${qt.label}`"
@@ -104,8 +105,15 @@ const groups = computed(() =>
           @keydown.enter.prevent="toggleQuadrant(qt.quadrant)"
           @keydown.space.prevent="toggleQuadrant(qt.quadrant)"
         >
-          <rect :x="qt.x - qt.width / 2" :y="qt.y - 15" :width="qt.width" height="30" rx="5" class="quadrant-title-bg" />
-          <text :x="qt.x" :y="qt.y" :fill="qt.color" class="quadrant-title-text" text-anchor="middle" dominant-baseline="middle">
+          <rect
+            :x="qt.x - qt.width / 2"
+            :y="qt.y - 15"
+            :width="qt.width"
+            height="30"
+            rx="5"
+            class="quadrant-title-bg"
+          />
+          <text :x="qt.x" :y="qt.y" class="quadrant-title-text" text-anchor="middle" dominant-baseline="middle">
             {{ qt.label }}
           </text>
         </g>
@@ -230,19 +238,21 @@ const groups = computed(() =>
 }
 
 .quadrant-title-text {
+  fill: color-mix(in srgb, var(--quadrant-color), white var(--radar-pill-text-lighten));
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+/* A lighter shade of the quadrant's own color. */
 .quadrant-title-bg {
-  fill: var(--color-radar-label-bg);
+  fill: color-mix(in srgb, var(--quadrant-color) var(--radar-pill-tint), var(--color-radar-ring-fill));
   transition: fill 0.15s;
 }
 
 .quadrant-title:hover .quadrant-title-bg {
-  fill: var(--color-radar-label-bg-hover);
+  fill: color-mix(in srgb, var(--quadrant-color) var(--radar-pill-tint-hover), var(--color-radar-ring-fill));
 }
 
 .quadrant-title:focus-visible .quadrant-title-bg {

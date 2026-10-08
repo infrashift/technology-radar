@@ -32,9 +32,12 @@
 
   /* SVG radar */
   --color-radar-ring-fill: #fff;
-  --color-radar-ring-stroke: #e0e0e0;
-  --color-radar-label-bg: #f0f0f0;
-  --color-radar-label-bg-hover: #e8e8e8;
+  --color-radar-ring-stroke: #c4c4d0;
+  --color-radar-ring-label: #858594;
+  /* Quadrant title pills: this share of the quadrant color, mixed into the ring fill */
+  --radar-pill-tint: 16%;
+  --radar-pill-tint-hover: 26%;
+  --radar-pill-text-lighten: 0%;
   --color-radar-tooltip-bg: #1a1a2e;
   --color-radar-tooltip-text: #fff;
   --color-radar-highlight-stroke: #1a1a2e;
@@ -72,9 +75,11 @@ html.dark {
 
   /* SVG radar */
   --color-radar-ring-fill: #1c1c30;
-  --color-radar-ring-stroke: #333350;
-  --color-radar-label-bg: #252540;
-  --color-radar-label-bg-hover: #333350;
+  --color-radar-ring-stroke: #4e4e74;
+  --color-radar-ring-label: #9a9ab8;
+  --radar-pill-tint: 22%;
+  --radar-pill-tint-hover: 32%;
+  --radar-pill-text-lighten: 35%;
   --color-radar-tooltip-bg: #252540;
   --color-radar-tooltip-text: #e0e0f0;
   --color-radar-highlight-stroke: #e0e0f0;

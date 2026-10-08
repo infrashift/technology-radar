@@ -104,7 +104,7 @@ function select(q: Quadrant) {
 
 .ring-label {
   font-size: 11px;
-  fill: var(--color-text-muted);
+  fill: var(--color-radar-ring-label);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
