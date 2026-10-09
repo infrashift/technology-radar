@@ -1,0 +1,16 @@
+---
+id: "remote-ssh-applications"
+title: "Remote SSH applications"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "tui-over-web-ui"
+  - "bubble-tea"
+  - "ratatui"
+---
+
+For internal applications we build **terminal applications served over SSH** rather than web applications. Users connect with `ssh` and authenticate with the keys or SSH certificates they already have, so there's no login page, session store, or browser attack surface to build and secure. Libraries such as Charm's Wish make it straightforward to serve a Bubble Tea application over SSH. The result is fast, works from any terminal, and fits teams that already live in remote workspaces. Web applications remain the right choice for anything customer-facing or for users who don't work in a terminal.

@@ -1,0 +1,17 @@
+---
+id: "tui-over-web-ui"
+title: "TUI"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "remote-ssh-applications"
+  - "bubble-tea"
+  - "ratatui"
+  - "ghostty"
+---
+
+When an internal tool needs an interactive interface, we default to a **text user interface (TUI)** instead of a web UI. TUIs are keyboard-driven, start instantly, run over SSH, and ship as a single binary with no frontend build, JavaScript dependency tree, or browser compatibility matrix. Our engineers and operators already work in the terminal, so a TUI meets them where they are. We use Bubble Tea for Go and are trialing Ratatui for Rust.

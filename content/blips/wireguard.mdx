@@ -1,0 +1,16 @@
+---
+id: "wireguard"
+title: "WireGuard"
+quadrant: "tools"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "private-datacenter"
+  - "google-cloud"
+  - "remote-development-workspaces"
+---
+
+**WireGuard** is our VPN for connecting our private datacenter, Google Cloud, and engineers to the remote workspaces they work in. It's built into the Linux kernel, has a small codebase that's practical to audit, uses a fixed set of modern cryptographic primitives with nothing to negotiate, and is configured with little more than a key pair and a list of peers. It's faster and far simpler to operate than IPsec or OpenVPN.

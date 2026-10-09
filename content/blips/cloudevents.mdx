@@ -1,0 +1,16 @@
+---
+id: "cloudevents"
+title: "CloudEvents"
+quadrant: "languages-and-frameworks"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "nats"
+  - "nats-jetstream"
+  - "dapr"
+---
+
+**CloudEvents** is a graduated CNCF specification for describing events in a common way: a small set of required attributes (`id`, `source`, `type`, and `specversion`) plus optional ones, with bindings for HTTP, NATS, Kafka, AMQP, and other transports. We use it as the envelope for every event our services publish, so routing, tracing, and tooling work the same regardless of producer or transport.

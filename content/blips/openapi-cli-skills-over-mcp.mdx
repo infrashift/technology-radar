@@ -1,0 +1,16 @@
+---
+id: "openapi-cli-skills-over-mcp"
+title: "OpenAPI/CLI + skills"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "ai-augmented-development"
+  - "specialized-ai-harnesses"
+  - "go"
+---
+
+When we want AI agents to work with an internal system, we describe the system with an **OpenAPI** specification, ship a **CLI** built on it, and teach agents to use that CLI with a **skill**: a short Markdown file of instructions and examples that the agent loads only when it needs it. We prefer this over standing up an **MCP server** for each system. The CLI is just as useful to people as it is to agents, it reuses the authentication and audit trail we already have, it's tested and versioned like any other tool, and it doesn't put every tool definition into the agent's context on every request. We still use MCP where a vendor offers nothing else, but it's no longer our default.

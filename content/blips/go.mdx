@@ -1,0 +1,16 @@
+---
+id: "go"
+title: "Go"
+quadrant: "languages-and-frameworks"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "bubble-tea"
+  - "cue-for-configuration"
+  - "rust"
+---
+
+**Go** is our default language for services, CLIs, and infrastructure tooling. It compiles to static binaries that cross-compile easily, its standard library covers most of what a service needs, and the language is small enough that code reads the same across teams. Much of the infrastructure we run (Vault, Consul, Nomad, Terraform, NATS, SeaweedFS) is written in Go, which makes it easy to read their source, contribute fixes, and reuse their libraries. This radar's CLI is written in Go too.

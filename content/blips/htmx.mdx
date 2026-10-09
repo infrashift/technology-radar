@@ -2,11 +2,14 @@
 id: "htmx"
 title: "htmx"
 quadrant: "languages-and-frameworks"
-ring: "assess"
+ring: "adopt"
 isNew: true
 history:
-  - date: "2025-11"
-    ring: "assess"
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "astro"
+  - "go"
 ---
 
-**htmx** allows you to access modern browser features directly from HTML using attributes, without writing JavaScript. It supports AJAX requests, WebSockets, and server-sent events through declarative HTML attributes. Teams are assessing htmx for content-heavy applications where a full SPA framework feels excessive.
+**htmx** lets us build interactive web interfaces by returning HTML from the server and declaring behavior with HTML attributes such as `hx-get`, `hx-post`, `hx-target`, and `hx-swap`, rather than building a single-page application. There's no client-side build, state stays on the server, and a Go service using `html/template` and htmx covers most of our web needs with a fraction of the code. When we build a web interface rather than a TUI, htmx is our default.

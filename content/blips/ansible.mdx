@@ -1,0 +1,15 @@
+---
+id: "ansible"
+title: "Ansible"
+quadrant: "tools"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "terraform"
+  - "rhel-over-ubuntu"
+---
+
+**Ansible** is how we configure machines once they exist. It's agentless (it connects over SSH) and playbooks are readable YAML, so the same automation works for bare-metal servers in our datacenter and VMs in Google Cloud. Terraform provisions infrastructure; Ansible configures what runs on it.

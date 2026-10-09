@@ -1,0 +1,15 @@
+---
+id: "nats-jetstream"
+title: "NATS JetStream"
+quadrant: "platforms"
+ring: "trial"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "trial"
+relatedBlips:
+  - "nats"
+  - "cloudevents"
+---
+
+**JetStream** is the persistence layer built into the NATS server. It adds streams with configurable retention, durable consumers with acknowledgement and replay, and key/value and object stores, without running a separate system. We're trialing it for event streams and work queues that need at-least-once delivery, carrying CloudEvents as the message format.

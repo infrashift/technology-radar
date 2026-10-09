@@ -1,0 +1,16 @@
+---
+id: "dapr"
+title: "Dapr"
+quadrant: "platforms"
+ring: "trial"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "trial"
+relatedBlips:
+  - "nats"
+  - "cloudevents"
+  - "hashicorp-consul"
+---
+
+**Dapr** (Distributed Application Runtime) is a graduated CNCF project that runs alongside an application and exposes common distributed-systems building blocks (service invocation, pub/sub, state management, bindings, and workflows) through HTTP and gRPC APIs. Code written against Dapr's APIs can swap the underlying broker or store through configuration. We're trialing it with NATS JetStream for pub/sub and Consul for name resolution; the open question is whether the abstraction earns its sidecar overhead for our services.

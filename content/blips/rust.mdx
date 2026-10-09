@@ -3,12 +3,13 @@ id: "rust"
 title: "Rust"
 quadrant: "languages-and-frameworks"
 ring: "trial"
-isNew: false
+isNew: true
 history:
-  - date: "2025-11"
+  - date: "2026-09"
     ring: "trial"
-  - date: "2025-05"
-    ring: "assess"
+relatedBlips:
+  - "ratatui"
+  - "go"
 ---
 
-**Rust** offers memory safety without garbage collection through its ownership system. It is gaining traction for systems programming, WebAssembly targets, and performance-critical backend services. The learning curve is steep but teams that invest in Rust report high satisfaction and fewer production memory-related bugs.
+We're trialing **Rust** where its strengths matter most: performance-critical components, systems code, and anywhere memory safety bugs would be expensive. Its ownership model eliminates whole classes of bugs at compile time without a garbage collector. It's in trial rather than adopt because its learning curve and compile times make it a poor default for the services and tooling where Go serves us well.

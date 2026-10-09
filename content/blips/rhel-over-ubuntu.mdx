@@ -1,0 +1,15 @@
+---
+id: "rhel-over-ubuntu"
+title: "RHEL"
+quadrant: "platforms"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "red-hat-ubi"
+  - "ansible"
+---
+
+We standardize on **Red Hat Enterprise Linux** for servers rather than Ubuntu. RHEL's long support lifecycle, SELinux enforcing by default, FIPS-validated cryptography, and broad vendor certification suit infrastructure we expect to run for years, and it matches the package base of our UBI container images. Ubuntu is a capable distribution; standardizing on one lets us automate, harden, and patch every server the same way.

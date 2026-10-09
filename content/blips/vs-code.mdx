@@ -1,0 +1,15 @@
+---
+id: "vs-code"
+title: "VS Code"
+quadrant: "tools"
+ring: "hold"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "hold"
+relatedBlips:
+  - "neovim"
+  - "remote-development-workspaces"
+---
+
+We're placing **VS Code** on hold as a default editor. Its remote development support installs a server into each remote workspace, its extension marketplace has become a supply chain risk with malicious extensions reported repeatedly, and its telemetry and proprietary Microsoft extensions conflict with how we want to run our environments. Neovim in a remote workspace over SSH is simpler and easier to control. Engineers who depend on VS Code for a specific workflow aren't required to switch, but we don't build team tooling around it.

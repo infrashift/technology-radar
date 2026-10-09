@@ -1,0 +1,16 @@
+---
+id: "hashicorp-vault"
+title: "HashiCorp Vault"
+quadrant: "platforms"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "hashicorp-consul"
+  - "nomad-over-kubernetes"
+  - "terraform"
+---
+
+**HashiCorp Vault** is our system of record for secrets. Applications get short-lived, dynamically generated credentials for databases and cloud providers, Vault's PKI engine issues our internal certificates, and the transit engine handles encryption without exposing keys. Nomad's native Vault integration delivers secrets to workloads without them ever being written into job definitions. Since HashiCorp moved Vault to the Business Source License in 2023, we keep an eye on OpenBao, the community fork under the Linux Foundation, as a fallback.

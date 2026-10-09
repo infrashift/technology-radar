@@ -24,6 +24,8 @@ and this project adheres to [Calendar Versioning](https://calver.org/) (`YYYY0M0
 
 ### Changed
 
+- Replaced the example blips with infrashift's first radar (volume 2026.09, 46 blips)
+- E2E tests serve the site on port 4322 (override with `E2E_PORT`) so they never attach to a running `astro dev`
 - The radar page fits the viewport on desktop; the blip list scrolls on its own
 - Config is loaded and validated through CUE instead of Viper; the schema is embedded in the `radar` binary
 - `schema_path` config key and `--schema-path` flag removed (the schema is embedded)

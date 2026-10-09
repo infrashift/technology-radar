@@ -1,0 +1,16 @@
+---
+id: "slsa-build-provenance"
+title: "SLSA build provenance"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "slsa-v1-2"
+  - "sbom-generation"
+  - "hermetic-builds"
+---
+
+We generate **SLSA build provenance** for every artifact: a signed in-toto attestation, produced by the build platform rather than the build script, that records what was built, from which source revision, and with which inputs and build definition. Consumers verify the provenance before deploying, which catches artifacts built outside our pipeline or from unreviewed source. Provenance is most valuable together with hermetic builds, because then the inputs it lists are the complete set.

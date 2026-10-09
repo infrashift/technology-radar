@@ -1,0 +1,14 @@
+---
+id: "cue-for-configuration"
+title: "CUE for configuration"
+quadrant: "languages-and-frameworks"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "go"
+---
+
+We use **CUE** as our configuration language: to define schemas for configuration, validate YAML and JSON against them, and generate configuration where values are derived from one another. In CUE, types, constraints, and values are the same kind of thing and combine by unification, so a schema, its defaults, and concrete values layer together without precedence rules, and errors point at the exact file and line. This radar validates its configuration and every blip against a CUE schema.

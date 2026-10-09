@@ -2,7 +2,7 @@ content_dir: content/blips
 web_dir: web
 output_json: web/src/data/blips-generated.json
 output_content: web/src/content/blips
-version: "2025.11"
+version: "2026.09"
 
 quadrants:
   - slug: techniques

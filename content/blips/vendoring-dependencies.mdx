@@ -1,0 +1,15 @@
+---
+id: "vendoring-dependencies"
+title: "Vendoring dependencies"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "hermetic-builds"
+  - "go"
+---
+
+We **vendor dependencies** into the repository (`go mod vendor`, `cargo vendor`, and their equivalents) rather than fetching them at build time. Dependency updates arrive as reviewable diffs, builds work offline and survive a yanked package or a registry outage, and the code we ship is exactly the code in the repository. The cost is a larger repository, which we consider a good trade for the control it gives us over our supply chain.

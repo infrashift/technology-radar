@@ -1,0 +1,14 @@
+---
+id: "seaweedfs-over-minio"
+title: "SeaweedFS"
+quadrant: "platforms"
+ring: "trial"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "trial"
+relatedBlips:
+  - "private-datacenter"
+---
+
+We're trialing **SeaweedFS** as our self-hosted, S3-compatible object store in place of MinIO. SeaweedFS is Apache-licensed, handles very large numbers of small files efficiently, and scales out with separate volume and filer servers. MinIO has steadily reduced its open-source community edition, removing most of its web console and ending prebuilt community releases, which makes it a poor foundation for us. SeaweedFS is less polished operationally, and that's what this trial needs to prove out.

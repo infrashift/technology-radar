@@ -1,0 +1,15 @@
+---
+id: "sbom-generation"
+title: "SBOM generation"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "slsa-build-provenance"
+  - "red-hat-ubi"
+---
+
+Every artifact we build ships with a **software bill of materials (SBOM)** in SPDX or CycloneDX format, generated in the build pipeline from the artifact itself rather than written by hand. SBOMs let us answer "are we affected?" within minutes when a new vulnerability is disclosed, and customers and regulators increasingly expect them. We attach them to the artifact as attestations, alongside its build provenance.

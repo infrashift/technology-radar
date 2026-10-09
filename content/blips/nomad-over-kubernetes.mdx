@@ -1,0 +1,16 @@
+---
+id: "nomad-over-kubernetes"
+title: "HashiCorp Nomad"
+quadrant: "platforms"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "hashicorp-consul"
+  - "hashicorp-vault"
+  - "private-datacenter"
+---
+
+We schedule workloads with **HashiCorp Nomad** rather than Kubernetes. Nomad is a single binary that schedules containers, VMs, and plain executables, it integrates natively with Consul for service discovery and Vault for secrets, and a small team can operate it across our datacenter and cloud without a platform team dedicated to the orchestrator. Kubernetes is more capable and has a far larger ecosystem, but for our scale and workload mix its operational cost outweighs the benefits.

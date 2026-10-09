@@ -177,7 +177,7 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
   });
 
-  for (const path of ['radar', 'radar/search', 'radar/faq', 'radar/contribute', 'radar/platforms/kubernetes']) {
+  for (const path of ['radar', 'radar/search', 'radar/faq', 'radar/contribute', 'radar/platforms/nomad-over-kubernetes']) {
     test(`internal links on /${path} include the base path`, async ({ page }) => {
       await page.goto(path);
       const hrefs = await page.locator('a[href^="/"]').evaluateAll((els) => els.map((el) => el.getAttribute('href')!));
@@ -207,8 +207,8 @@ test.describe('Search page', () => {
 
   test('filters results by search query', async ({ page }) => {
     await page.goto('radar/search');
-    await page.getByRole('textbox', { name: 'Search blips' }).fill('Kubernetes');
-    await expect(page.locator('.result-link').first()).toContainText('Kubernetes');
+    await page.getByRole('textbox', { name: 'Search blips' }).fill('Nomad');
+    await expect(page.locator('.result-link').first()).toContainText('Nomad');
   });
 
   test('filters results by ring', async ({ page }) => {
@@ -227,13 +227,13 @@ test.describe('Search page', () => {
 
 test.describe('Blip detail page', () => {
   test('renders blip title and metadata', async ({ page }) => {
-    await page.goto('radar/platforms/kubernetes');
-    await expect(page.getByRole('heading', { name: 'Kubernetes', level: 1 })).toBeVisible();
+    await page.goto('radar/platforms/nomad-over-kubernetes');
+    await expect(page.getByRole('heading', { name: 'HashiCorp Nomad', level: 1 })).toBeVisible();
     await expect(page.locator('.ring-badge').first()).toBeVisible();
   });
 
   test('breadcrumb links back to the radar and its quadrant', async ({ page }) => {
-    await page.goto('radar/platforms/kubernetes');
+    await page.goto('radar/platforms/nomad-over-kubernetes');
     const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(crumbs.locator(`a[href="${href('/radar')}"]`)).toBeVisible();
 
@@ -242,15 +242,15 @@ test.describe('Blip detail page', () => {
   });
 
   test('renders a static quadrant radar with the blip labelled', async ({ page }) => {
-    await page.goto('radar/platforms/kubernetes');
+    await page.goto('radar/platforms/nomad-over-kubernetes');
     const sidebar = page.locator('.quadrant-radar-sidebar');
     await expect(sidebar.locator('svg').first()).toBeVisible();
-    await expect(sidebar.locator('.radar-label')).toHaveText('Kubernetes');
+    await expect(sidebar.locator('.radar-label')).toHaveText('HashiCorp Nomad');
     await expect(page.locator('astro-island')).toHaveCount(0);
   });
 
   test('sidebar list uses the quadrant color', async ({ page }) => {
-    await page.goto('radar/platforms/kubernetes');
+    await page.goto('radar/platforms/nomad-over-kubernetes');
     const color = await page.locator('.quadrant-blip-list h3').evaluate((el) => getComputedStyle(el).color);
     expect(color).toBe('rgb(9, 105, 218)');
   });

@@ -1,0 +1,15 @@
+---
+id: "python"
+title: "Python"
+quadrant: "languages-and-frameworks"
+ring: "hold"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "hold"
+relatedBlips:
+  - "go"
+  - "rust"
+---
+
+We're placing **Python** on hold for new services and tooling. Shipping Python reliably means managing an interpreter version, virtual environments, and a dependency tree that's hard to pin, vendor, and build hermetically, and its performance and concurrency model mean services often need rewriting as they grow. Go covers most of what we used Python for, delivered as a single static binary.

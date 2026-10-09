@@ -1,0 +1,16 @@
+---
+id: "remote-development-workspaces"
+title: "Remote development workspaces over local"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "sandboxed-ai-workspaces"
+  - "neovim"
+  - "ghostty"
+---
+
+We develop in **remote workspaces** (managed machines in our datacenter or cloud that developers reach over SSH) rather than on local laptops. Toolchains are defined once and identical for everyone, source code and credentials stay on infrastructure we control, builds get server-class hardware, and a new starter is productive on day one. A terminal workflow built on Ghostty and Neovim makes a remote workspace feel local, and the same boundary gives us a natural place to sandbox AI agents.

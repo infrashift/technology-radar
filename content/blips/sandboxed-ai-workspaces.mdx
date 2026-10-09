@@ -1,0 +1,15 @@
+---
+id: "sandboxed-ai-workspaces"
+title: "Sandboxed AI-augmented developer workspaces"
+quadrant: "techniques"
+ring: "adopt"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "adopt"
+relatedBlips:
+  - "ai-augmented-development"
+  - "remote-development-workspaces"
+---
+
+AI coding agents run commands, install packages, and read whatever is within reach, and they can be steered by prompt injection hidden in issues, documentation, or dependencies. We run them in **sandboxed workspaces**: an isolated container or VM per task, network egress limited to an allow list, short-lived credentials scoped to the task, and no access to the developer's host, SSH agent, or long-lived secrets. The sandbox is what lets us safely give agents more autonomy: the worst case is a discarded workspace, not a compromised laptop.

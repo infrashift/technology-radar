@@ -1,0 +1,16 @@
+---
+id: "event-driven-architecture"
+title: "Event-driven architecture"
+quadrant: "techniques"
+ring: "trial"
+isNew: true
+history:
+  - date: "2026-09"
+    ring: "trial"
+relatedBlips:
+  - "cloudevents"
+  - "nats-jetstream"
+  - "dapr"
+---
+
+In an **event-driven architecture**, services publish facts about what has happened and other services react to them, instead of calling each other directly. It decouples producers from consumers, lets new consumers be added without changing producers, and absorbs load spikes through buffering. We're trialing it for integrations between services using NATS JetStream with CloudEvents as the envelope. It's in trial because it trades simple request/response flows for eventual consistency, harder debugging, and the need for good tracing, schema versioning, and idempotent consumers, so we're applying it where the decoupling clearly pays off.
