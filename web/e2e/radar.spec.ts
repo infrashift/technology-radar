@@ -177,7 +177,7 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
   });
 
-  for (const path of ['radar', 'radar/search', 'radar/faq', 'radar/contribute', 'radar/platforms/nomad-over-kubernetes']) {
+  for (const path of ['radar', 'radar/search', 'radar/faq', 'radar/contribute', 'radar/platforms/hashicorp-nomad']) {
     test(`internal links on /${path} include the base path`, async ({ page }) => {
       await page.goto(path);
       const hrefs = await page.locator('a[href^="/"]').evaluateAll((els) => els.map((el) => el.getAttribute('href')!));
@@ -227,13 +227,13 @@ test.describe('Search page', () => {
 
 test.describe('Blip detail page', () => {
   test('renders blip title and metadata', async ({ page }) => {
-    await page.goto('radar/platforms/nomad-over-kubernetes');
+    await page.goto('radar/platforms/hashicorp-nomad');
     await expect(page.getByRole('heading', { name: 'HashiCorp Nomad', level: 1 })).toBeVisible();
     await expect(page.locator('.ring-badge').first()).toBeVisible();
   });
 
   test('breadcrumb links back to the radar and its quadrant', async ({ page }) => {
-    await page.goto('radar/platforms/nomad-over-kubernetes');
+    await page.goto('radar/platforms/hashicorp-nomad');
     const crumbs = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(crumbs.locator(`a[href="${href('/radar')}"]`)).toBeVisible();
 
@@ -242,7 +242,7 @@ test.describe('Blip detail page', () => {
   });
 
   test('renders a static quadrant radar with the blip labelled', async ({ page }) => {
-    await page.goto('radar/platforms/nomad-over-kubernetes');
+    await page.goto('radar/platforms/hashicorp-nomad');
     const sidebar = page.locator('.quadrant-radar-sidebar');
     await expect(sidebar.locator('svg').first()).toBeVisible();
     await expect(sidebar.locator('.radar-label')).toHaveText('HashiCorp Nomad');
@@ -250,7 +250,7 @@ test.describe('Blip detail page', () => {
   });
 
   test('sidebar list uses the quadrant color', async ({ page }) => {
-    await page.goto('radar/platforms/nomad-over-kubernetes');
+    await page.goto('radar/platforms/hashicorp-nomad');
     const color = await page.locator('.quadrant-blip-list h3').evaluate((el) => getComputedStyle(el).color);
     expect(color).toBe('rgb(9, 105, 218)');
   });

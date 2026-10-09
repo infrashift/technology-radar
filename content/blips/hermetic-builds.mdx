@@ -10,7 +10,7 @@ history:
 relatedBlips:
   - "vendoring-dependencies"
   - "slsa-build-provenance"
-  - "guix-over-nixos"
+  - "gnu-guix"
 ---
 
 A **hermetic build** declares every input up front (toolchain, dependencies, and source) and runs without network access, so the same inputs always produce the same outputs. Hermeticity makes builds reproducible, makes caching safe, and is what lets build provenance say something meaningful about what went into an artifact. We're trialing it on a few projects; the cost is in pinning toolchains and pre-fetching every dependency, which vendoring and Guix help with.
